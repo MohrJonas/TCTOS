@@ -1,0 +1,32 @@
+const TCTOS = importNamespace("TCTOS");
+
+async function canApplyFeature() {
+    var hasRuntimeDir = environmentVariableProvider.HasVariable("XDG_RUNTIME_DIR");
+    if(!hasRuntimeDir)
+        return false;
+    var socketPath = System.IO.Path.Combine(
+        environmentVariableProvider.GetVariableValue("XDG_RUNTIME_DIR"),
+        "wayland-0"
+    );
+    return System.IO.File.Exists(socketPath);
+}
+
+async function applyFeature() {
+    var socketPath = System.IO.Path.Combine(
+        environmentVariableProvider.GetVariableValue("XDG_RUNTIME_DIR"),
+        "wayland-0"
+    );
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        const device = new TCTOS.Impls.Incus.Devices.IncusDiskDevice();
+        device.Path = System.IO.Path.Combine("/host", socketPath);
+        device.Source = socketPath; 
+        device.Shift = true;       
+        instance.Devices.Add("wayland", device);
+    })).ThrowIfFailed();
+}
+
+async function unapplyFeature() {
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        instance.Devices.Remove("wayland")
+    })).ThrowIfFailed();
+}

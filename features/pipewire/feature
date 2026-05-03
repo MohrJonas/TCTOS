@@ -1,0 +1,42 @@
+const TCTOS = importNamespace("TCTOS");
+
+async function canApplyFeature() {
+    var hasRuntimeDir = environmentVariableProvider.HasVariable("XDG_RUNTIME_DIR");
+    if(!hasRuntimeDir)
+        return false;
+    var socketPath = System.IO.Path.Combine(
+        environmentVariableProvider.GetVariableValue("XDG_RUNTIME_DIR"),
+        "pipewire-0"
+    );
+    return System.IO.File.Exists(socketPath);
+}
+
+async function applyFeature() {
+    var socketPath = System.IO.Path.Combine(
+        environmentVariableProvider.GetVariableValue("XDG_RUNTIME_DIR"),
+        "pipewire-0"
+    );
+    var managerSocketPath = System.IO.Path.Combine(
+        environmentVariableProvider.GetVariableValue("XDG_RUNTIME_DIR"),
+        "pipewire-0-manager"
+    );
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        const pipewireDevice = new TCTOS.Impls.Incus.Devices.IncusDiskDevice();
+        pipewireDevice.Path = System.IO.Path.Combine("/host", socketPath);
+        pipewireDevice.Source = socketPath; 
+        pipewireDevice.Shift = true;
+        const pipewireSocketDevice = new TCTOS.Impls.Incus.Devices.IncusDiskDevice();
+        pipewireSocketDevice.Path = System.IO.Path.Combine("/host", managerSocketPath);
+        pipewireSocketDevice.Source = managerSocketPath; 
+        pipewireSocketDevice.Shift = true;      
+        instance.Devices.Add("pipewire", pipewireDevice);
+        instance.Devices.Add("pipewire-mgr", pipewireSocketDevice);
+    })).ThrowIfFailed();
+}
+
+async function unapplyFeature() {
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        instance.Devices.Remove("pipewire");
+        instance.Devices.Remove("pipewire-mgr")
+    })).ThrowIfFailed();
+}

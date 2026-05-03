@@ -22,7 +22,8 @@ public interface IFeatureRunner
         IUserInformationCollector userInformationCollector,
         IEnvironmentVariableProvider environmentVariableProvider,
         ICommandRunner commandRunner,
-        IBackgroundCommandRunner backgroundCommandRunner);
+        IBackgroundCommandRunner backgroundCommandRunner,
+        IDictionary<string, string> env);
 
     public Task UnapplyFeature(
         string featureScriptText,

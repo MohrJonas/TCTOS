@@ -5,7 +5,13 @@ namespace TCTOS.Impls;
 
 public sealed class LocalUserInformationCollector : IUserInformationCollector
 {
-    public uint GetUid() => (uint)CInterop.getuid();
+    public uint GetUid()
+    {
+        return (uint)CInterop.getuid();
+    }
 
-    public uint GetGid() => (uint)CInterop.getgid();
+    public uint GetGid()
+    {
+        return (uint)CInterop.getgid();
+    }
 }

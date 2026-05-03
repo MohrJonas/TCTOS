@@ -8,8 +8,10 @@ public sealed class LocalCommandRunnerImpl : ICommandRunner
 {
     public Task<Result<CommandResult>> RunCommand(string command, string[]? args = null, string? stdin = null,
         Dictionary<string, string>? env = null, string? cwd = null)
-        => RunCatchingAsync(async () => {
-            var startInfo = new ProcessStartInfo()
+    {
+        return RunCatchingAsync(async () =>
+        {
+            var startInfo = new ProcessStartInfo
             {
                 FileName = command,
                 RedirectStandardInput = true,
@@ -34,7 +36,7 @@ public sealed class LocalCommandRunnerImpl : ICommandRunner
                 await process.StandardInput.FlushAsync();
                 process.StandardInput.Close();
             }
-            
+
             await process.WaitForExitAsync();
             return new CommandResult(
                 await process.StandardOutput.ReadToEndAsync(),
@@ -42,10 +44,14 @@ public sealed class LocalCommandRunnerImpl : ICommandRunner
                 process.ExitCode
             );
         });
+    }
 
-    public Task<Result<int?>> RunCommandInteractively(string command, string[]? args = null, Dictionary<string, string>? env = null, string? cwd = null)
-        => RunCatchingAsync<int?>(async () => {
-            var startInfo = new ProcessStartInfo()
+    public Task<Result<int?>> RunCommandInteractively(string command, string[]? args = null,
+        Dictionary<string, string>? env = null, string? cwd = null)
+    {
+        return RunCatchingAsync<int?>(async () =>
+        {
+            var startInfo = new ProcessStartInfo
             {
                 FileName = command
             };
@@ -60,8 +66,9 @@ public sealed class LocalCommandRunnerImpl : ICommandRunner
             var process = Process.Start(startInfo);
             if (process == null)
                 return null;
-            
+
             await process.WaitForExitAsync();
             return process.ExitCode;
         });
+    }
 }

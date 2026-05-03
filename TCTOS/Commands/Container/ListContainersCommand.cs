@@ -1,4 +1,5 @@
 using System.CommandLine;
+using TCTOS.Abstractions;
 using TCTOS.IOC;
 
 namespace TCTOS.Commands.Container;
@@ -6,8 +7,17 @@ namespace TCTOS.Commands.Container;
 public sealed class ListContainersCommand(DiContainer container)
     : CommandBase("list", "List all containers", container, ["ls"])
 {
-    protected override Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
+    protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
     {
-        throw new NotImplementedException();
+        var client = container.Get<IIncusClient>();
+        var containers = (await client.GetContainersAsync()).Metadata;
+        var nonPersistentStorage = container.Get<INonPersistentStorage>();
+        foreach (var instance in containers)
+        {
+            var key = $"{instance.Name}-enabled-features";
+            var enabledFeatures = nonPersistentStorage.PeekValue<string[]>(key);
+            Console.WriteLine(
+                $"{instance.Name}\t{instance.Description}\t{instance.Status}\t{string.Join(", ", enabledFeatures)}");
+        }
     }
 }

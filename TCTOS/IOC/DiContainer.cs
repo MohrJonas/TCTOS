@@ -2,6 +2,25 @@ namespace TCTOS.IOC;
 
 public sealed class DiContainer
 {
+    private readonly Dictionary<Type, ContainerElement> _backingDict = [];
+
+    public TData Get<TData>()
+    {
+        return (TData)(_backingDict[typeof(TData)]).Get();
+    }
+
+    public DiContainer AddLazy<TData>(Func<TData> lazyFactory) where TData : notnull
+    {
+        _backingDict[typeof(TData)] = new LazyContainerElement(() => lazyFactory());
+        return this;
+    }
+
+    public DiContainer Add<TData>(TData data) where TData : notnull
+    {
+        _backingDict[typeof(TData)] = new FixedContainerElement(data);
+        return this;
+    }
+
     private abstract class ContainerElement
     {
         public abstract object Get();
@@ -9,7 +28,10 @@ public sealed class DiContainer
 
     private sealed class FixedContainerElement(object element) : ContainerElement
     {
-        public override object Get() => element;
+        public override object Get()
+        {
+            return element;
+        }
     }
 
     private sealed class LazyContainerElement(Func<object> factory) : ContainerElement
@@ -21,21 +43,5 @@ public sealed class DiContainer
             _value ??= factory();
             return _value;
         }
-    }
-    
-    private readonly Dictionary<Type, ContainerElement> _backingDict = [];
-
-    public TData Get<TData>() => (TData)(_backingDict[typeof(TData)]).Get();
-
-    public DiContainer AddLazy<TData>(Func<TData> lazyFactory) where TData : notnull
-    {
-        _backingDict[typeof(TData)] = new LazyContainerElement(() => lazyFactory());
-        return this;
-    }
-    
-    public DiContainer Add<TData>(TData data) where TData : notnull
-    {
-        _backingDict[typeof(TData)] = new FixedContainerElement(data);
-        return this;
     }
 }

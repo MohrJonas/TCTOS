@@ -7,62 +7,69 @@ namespace TCTOS.Impls;
 public sealed class SystemdBackgroundCommandRunner : IBackgroundCommandRunner
 {
     public Task<Result<object?>> RunCommandInBackground(string command, string[]? args = null, string? stdin = null,
-        Dictionary<string, string>? env = null, string? cwd = null) => RunCatchingAsync<object?>(async () =>
+        Dictionary<string, string>? env = null, string? cwd = null)
     {
-        var startInfo = new ProcessStartInfo()
+        return RunCatchingAsync<object?>(async () =>
         {
-            FileName = "systemd-run",
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        var unitName = Guid.NewGuid().ToString();
-        List<string> commandArgs = [
-            "--user",
-            "--unit",
-            unitName,
-            command
-        ];
-        
-        if (args != null)
-            commandArgs.AddRange(args);
-        
-        startInfo.Arguments = string.Join(" ", commandArgs);
-        
-        if (env != null)
-            foreach (var (key, value) in env)
-                startInfo.Environment.Add(key, value);
-        if (cwd != null)
-            startInfo.WorkingDirectory = cwd;
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "systemd-run",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            var unitName = Guid.NewGuid().ToString();
+            List<string> commandArgs =
+            [
+                "--user",
+                "--unit",
+                unitName,
+                command
+            ];
 
-        var process = Process.Start(startInfo);
-        if (process == null)
-            return null;
+            if (args != null)
+                commandArgs.AddRange(args);
 
-        if (stdin != null)
-        {
-            await process.StandardInput.WriteAsync(stdin);
-            await process.StandardInput.FlushAsync();
-            process.StandardInput.Close();
-        }
-            
-        await process.WaitForExitAsync();
-        return unitName;
-    });
+            startInfo.Arguments = string.Join(" ", commandArgs);
 
-    public Task<Result> StopBackgroundCommand(object identifier) => RunCatchingAsync(async () =>
-    {
-        var startInfo = new ProcessStartInfo()
-        {
-            FileName = "systemctl",
-            Arguments = string.Join(" ", ["--user", "stop", identifier.ToString()]),
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        var process = Process.Start(startInfo);
+            if (env != null)
+                foreach (var (key, value) in env)
+                    startInfo.Environment.Add(key, value);
+            if (cwd != null)
+                startInfo.WorkingDirectory = cwd;
 
-        if (process != null)
+            var process = Process.Start(startInfo);
+            if (process == null)
+                return null;
+
+            if (stdin != null)
+            {
+                await process.StandardInput.WriteAsync(stdin);
+                await process.StandardInput.FlushAsync();
+                process.StandardInput.Close();
+            }
+
             await process.WaitForExitAsync();
-    });
+            return unitName;
+        });
+    }
+
+    public Task<Result> StopBackgroundCommand(object identifier)
+    {
+        return RunCatchingAsync(async () =>
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "systemctl",
+                Arguments = string.Join(" ", "--user", "stop", identifier.ToString()),
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            var process = Process.Start(startInfo);
+
+            if (process != null)
+                await process.WaitForExitAsync();
+        });
+    }
 }

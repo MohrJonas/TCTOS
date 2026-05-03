@@ -4,15 +4,11 @@ namespace TCTOS.Data;
 
 public sealed record FeatureDescriptor
 {
-    [JsonPropertyName("name")]
-    public required string Name { init; get; }
-    
-    [JsonPropertyName("description")]
-    public required string Description { init; get; }
-    
-    [JsonPropertyName("conflicts")]
-    public required string[] ConflictsWith { init; get; }
-    
-    [JsonPropertyName("depends")]
-    public required string[] DependsOn { init; get; }
+    [JsonPropertyName("name")] public required string Name { init; get; }
+
+    [JsonPropertyName("description")] public required string Description { init; get; }
+
+    [JsonPropertyName("conflicts")] public required string[] ConflictsWith { init; get; }
+
+    [JsonPropertyName("depends")] public required string[] DependsOn { init; get; }
 }

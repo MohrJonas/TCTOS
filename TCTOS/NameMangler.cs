@@ -6,7 +6,7 @@ public static class NameMangler
     {
         if (string.IsNullOrEmpty(name))
             return name;
-        // Drop leading and trailing hypens
+        // Drop leading and trailing hyphens
         var chars = name
             .Trim('-')
             .ToCharArray();

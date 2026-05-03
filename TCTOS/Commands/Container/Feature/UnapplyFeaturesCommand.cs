@@ -4,8 +4,9 @@ using TCTOS.IOC;
 
 namespace TCTOS.Commands.Container.Feature;
 
-public sealed class UnapplyFeaturesCommand(DiContainer container) 
-    : CommandBase("unapply", "Un-apply the defined features to the container", container, arguments: [SharedArguments.ContainerNameArgument])
+public sealed class UnapplyFeaturesCommand(DiContainer container)
+    : CommandBase("unapply", "Un-apply the defined features to the container", container,
+        arguments: [SharedArguments.ContainerNameArgument])
 {
     protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
     {
@@ -20,7 +21,7 @@ public sealed class UnapplyFeaturesCommand(DiContainer container)
         var nonPersistentStorage = container.Get<INonPersistentStorage>();
         var runner = container.Get<ICommandRunner>();
         var backgroundRunner = container.Get<IBackgroundCommandRunner>();
-        
+
         var configuration = (await fileSystem.GetContainerConfigurationAsync(containerName)).GetOrThrow()!;
 
         foreach (var featureName in configuration.FeatureNames)

@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Drawing;
 using TCTOS.Abstractions;
 using TCTOS.Data;
 using TCTOS.Impls.Incus.Data;
@@ -21,6 +22,56 @@ public static class CreateContainerCommandOptions
         Description = "Enable the given feature for the container",
         DefaultValueFactory = _ => []
     };
+
+    public static readonly Option<Color> ContainerColorOption = new("--color", "-c")
+    {
+        Description = "Specify the color of the container. Icons of exported applications will be this color",
+        DefaultValueFactory = _ => new Color
+        {
+            Red = 0,
+            Green = 255,
+            Blue = 0
+        },
+        CustomParser = res =>
+        {
+            if (res.Tokens.Count != 1)
+            {
+                res.AddError("--color requires a string in the format: \"<red>, <green>, <blue>\" or a color constant");
+                return null;
+            }
+
+            if (Enum.TryParse<KnownColor>(res.Tokens[0].Value, true, out var knownColor))
+            {
+                var drawingColor = System.Drawing.Color.FromKnownColor(knownColor);
+                return new Color
+                {
+                    Red = drawingColor.R,
+                    Green = drawingColor.G,
+                    Blue = drawingColor.B
+                };
+            }
+
+            var parts = res.Tokens[0].Value.Split(",", StringSplitOptions.TrimEntries);
+            if (parts.Length != 3)
+            {
+                res.AddError($"Got {parts.Length} color components, expected 3");
+                return null;
+            }
+
+            if (!byte.TryParse(parts[0], out var redValue))
+                res.AddError("Red has to be a number between 0 and 255");
+            if (!byte.TryParse(parts[1], out var greenValue))
+                res.AddError("Green has to be a number between 0 and 255");
+            if (!byte.TryParse(parts[2], out var blueValue))
+                res.AddError("Blue has to be a number between 0 and 255");
+            return new Color
+            {
+                Red = redValue,
+                Green = greenValue,
+                Blue = blueValue
+            };
+        }
+    };
 }
 
 public static class CreateContainerCommandArguments
@@ -32,12 +83,13 @@ public static class CreateContainerCommandArguments
 }
 
 public sealed class CreateContainerCommand(DiContainer container)
-    : CommandBase("create", "Create a new container", container, aliases: ["new"],
-        arguments: [SharedArguments.ContainerNameArgument, CreateContainerCommandArguments.ImageNameArgument],
+    : CommandBase("create", "Create a new container", container, ["new"],
+        arguments: [CreateContainerCommandArguments.ImageNameArgument, SharedArguments.ContainerNameArgument],
         options:
         [
             CreateContainerCommandOptions.ContainerDescriptionOption,
-            CreateContainerCommandOptions.ContainerFeaturesOption
+            CreateContainerCommandOptions.ContainerFeaturesOption,
+            CreateContainerCommandOptions.ContainerColorOption
         ])
 {
     protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
@@ -61,10 +113,8 @@ public sealed class CreateContainerCommand(DiContainer container)
             .ToArray();
 
         foreach (var featureName in parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerFeaturesOption))
-        {
             if (!existingFeatureNames.Contains(featureName))
                 throw new Exception($"Feature with name \"{featureName}\" does not exist");
-        }
 
         var fileSystem = container.Get<IFileSystem>();
 
@@ -73,28 +123,28 @@ public sealed class CreateContainerCommand(DiContainer container)
         if (globalConfiguration == null)
             throw new Exception("No global configuration found");
 
-        var response = (await client.CreateContainerAsync(new InstancesPost()
+        var response = await client.CreateContainerAsync(new InstancesPost
         {
             Name = mangledContainerName,
             Description = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerDescriptionOption),
-            Devices = new Dictionary<string, object>()
+            Devices = new Dictionary<string, object>
             {
                 {
-                    "root", new IncusDiskDevice()
+                    "root", new IncusDiskDevice
                     {
                         Path = "/",
                         Pool = globalConfiguration.PoolName
                     }
                 },
                 {
-                    "net", new IncusNicDevice()
+                    "net", new IncusNicDevice
                     {
                         Name = "eth0",
                         Network = globalConfiguration.BridgeName
                     }
                 }
             },
-            Source = new InstanceSource()
+            Source = new InstanceSource
             {
                 Type = ImageSourceType.Image,
                 Alias = "ubuntu/questing/default/amd64",
@@ -102,13 +152,13 @@ public sealed class CreateContainerCommand(DiContainer container)
                 Protocol = "simplestreams",
                 Mode = TransferMode.Pull
             },
-            Config = new Dictionary<string, object>()
+            Config = new Dictionary<string, object>
             {
                 { "security.nesting", true }
             },
             Type = "container",
             Profiles = []
-        }));
+        });
 
         response.ThrowOnError();
 
@@ -119,9 +169,10 @@ public sealed class CreateContainerCommand(DiContainer container)
         (await fileSystem.SetProvisioningFileContentAsync(containerName,
             provisioner.GetDefaultProvisionFileTemplate())).ThrowIfFailed();
 
-        (await fileSystem.SetContainerConfigurationAsync(containerName, new ContainerConfiguration()
+        (await fileSystem.SetContainerConfigurationAsync(containerName, new ContainerConfiguration
         {
-            FeatureNames = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerFeaturesOption)
+            FeatureNames = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerFeaturesOption),
+            Color = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerColorOption)
         })).ThrowIfFailed();
     }
 }

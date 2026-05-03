@@ -1,32 +1,36 @@
-using System;
-using System.Threading.Tasks;
-
 namespace TCTOS.Util;
 
 public class Result(bool hasFailed, Exception? exception)
 {
-    public override string ToString() 
-        => $"{(hasFailed ? "Failed" : "Succeeded")}: {(hasFailed ? exception : string.Empty)}";
+    public bool HasFailed => hasFailed;
+
+    public Exception? Exception => exception;
+
+    public override string ToString()
+    {
+        return $"{(hasFailed ? "Failed" : "Succeeded")}: {(hasFailed ? exception : string.Empty)}";
+    }
 
     public void ThrowIfFailed()
     {
         if (hasFailed)
             throw exception!;
     }
-
-    public bool HasFailed => hasFailed;
-
-    public Exception? Exception => exception;
 }
 
 public sealed class Result<TData>(bool hasFailed, Exception? exception, TData? data) : Result(hasFailed, exception)
 {
     private readonly TData? _data = data;
 
-    public TData GetOrThrow() => HasFailed ? throw Exception! : _data!;
-    
-    public override string ToString() 
-        => $"{(HasFailed ? "Failed" : "Succeeded")}: {(HasFailed ? Exception : _data)}";
+    public TData GetOrThrow()
+    {
+        return HasFailed ? throw Exception! : _data!;
+    }
+
+    public override string ToString()
+    {
+        return $"{(HasFailed ? "Failed" : "Succeeded")}: {(HasFailed ? Exception : _data)}";
+    }
 }
 
 public static class ResultStatics
@@ -55,7 +59,7 @@ public static class ResultStatics
             return new Result<TData>(true, e, default);
         }
     }
-    
+
     public static async Task<Result> RunCatchingAsync(Func<Task> func)
     {
         try

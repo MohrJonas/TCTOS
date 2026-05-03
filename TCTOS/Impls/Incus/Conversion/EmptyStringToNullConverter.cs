@@ -11,6 +11,8 @@ public sealed class EmptyStringToNullConverter : JsonConverter<string?>
         return string.IsNullOrEmpty(stringValue) ? null : stringValue;
     }
 
-    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options) 
-        => writer.WriteStringValue(value);
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value);
+    }
 }

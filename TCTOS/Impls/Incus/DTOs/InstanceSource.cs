@@ -38,18 +38,14 @@ public sealed record InstanceSource
     [JsonPropertyName("refresh_exclude_order")]
     public bool? RefreshExcludeOrder { get; set; }
 
-    [JsonPropertyName("secret")]
-    public string? Secret { get; set; }
-    
-    [JsonPropertyName("secrets")]
-    public Dictionary<string, object>? Secrets { get; set; }
-    
-    [JsonPropertyName("server")]
-    public string? Server { get; set; }
-    
-    [JsonPropertyName("source")]
-    public string? Source { get; set; }
-    
+    [JsonPropertyName("secret")] public string? Secret { get; set; }
+
+    [JsonPropertyName("secrets")] public Dictionary<string, object>? Secrets { get; set; }
+
+    [JsonPropertyName("server")] public string? Server { get; set; }
+
+    [JsonPropertyName("source")] public string? Source { get; set; }
+
     [JsonPropertyName("type")]
     [JsonConverter(typeof(StringToEnumConverter<ImageSourceType>))]
     public ImageSourceType? Type { get; set; }

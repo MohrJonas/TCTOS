@@ -1,0 +1,20 @@
+const TCTOS = importNamespace("TCTOS");
+
+async function canApplyFeature() {
+    return System.IO.Directory.Exists("/dev/dri");
+}
+
+async function applyFeature() {
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        const device = new TCTOS.Impls.Incus.Devices.IncusDiskDevice();
+        device.Path = "/dev/dri";
+        device.Source = "/dev/dri"; 
+        instance.Devices.Add("gpu", device);
+    })).ThrowIfFailed();
+}
+
+async function unapplyFeature() {
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        instance.Devices.Remove("gpu");
+    })).ThrowIfFailed();
+}

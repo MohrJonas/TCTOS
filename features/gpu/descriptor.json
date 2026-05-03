@@ -1,0 +1,6 @@
+{
+    "name": "gpu",
+    "description": "Pass the host's DRI (Direct Rendering Infrastructure) into the container",
+    "conflicts": [],
+    "depends": []
+}

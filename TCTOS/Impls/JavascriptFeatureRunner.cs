@@ -14,6 +14,7 @@ public sealed class JavascriptFeatureRunner : IFeatureRunner
         using var engine = new Engine(static configure =>
         {
             configure.ExperimentalFeatures = ExperimentalFeature.TaskInterop;
+            configure.AllowClr(typeof(JavascriptFeatureRunner).Assembly);
         });
         engine
             .SetValue("fileSystem", fileSystem)
@@ -33,11 +34,12 @@ public sealed class JavascriptFeatureRunner : IFeatureRunner
         IIncusClient incusClient,
         INonPersistentStorage nonPersistentStorage, IUserInformationCollector userInformationCollector,
         IEnvironmentVariableProvider environmentVariableProvider, ICommandRunner commandRunner,
-        IBackgroundCommandRunner backgroundCommandRunner)
+        IBackgroundCommandRunner backgroundCommandRunner, IDictionary<string, string> env)
     {
         using var engine = new Engine(static configure =>
         {
             configure.ExperimentalFeatures = ExperimentalFeature.TaskInterop;
+            configure.AllowClr(typeof(JavascriptFeatureRunner).Assembly);
         });
         engine
             .SetValue("fileSystem", fileSystem)
@@ -48,6 +50,7 @@ public sealed class JavascriptFeatureRunner : IFeatureRunner
             .SetValue("commandRunner", commandRunner)
             .SetValue("containerName", containerName)
             .SetValue("backgroundCommandRunner", backgroundCommandRunner)
+            .SetValue("env", env)
             .SetValue("debug", (Action<object>)Console.WriteLine);
         await engine.ExecuteAsync(featureScriptText);
         await engine.InvokeAsync("applyFeature");
@@ -62,6 +65,7 @@ public sealed class JavascriptFeatureRunner : IFeatureRunner
         using var engine = new Engine(static configure =>
         {
             configure.ExperimentalFeatures = ExperimentalFeature.TaskInterop;
+            configure.AllowClr(typeof(JavascriptFeatureRunner).Assembly);
         });
         engine
             .SetValue("fileSystem", fileSystem)

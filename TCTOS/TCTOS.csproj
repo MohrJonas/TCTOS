@@ -8,13 +8,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Using Include="TCTOS.Util.ResultStatics" Static="True" />
+        <Using Include="TCTOS.Util.ResultStatics" Static="True"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Jint" Version="4.8.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.7" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.7" />
-      <PackageReference Include="System.CommandLine" Version="2.0.7" />
+        <PackageReference Include="Jint" Version="4.8.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.7"/>
+        <PackageReference Include="System.CommandLine" Version="2.0.7"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Operations\"/>
     </ItemGroup>
 </Project>

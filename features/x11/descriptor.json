@@ -1,0 +1,6 @@
+{
+    "name": "x11",
+    "description": "Using xwayland-satellite, create an isolated x11 environment and pass it into the container",
+    "conflicts": [],
+    "depends": []
+}

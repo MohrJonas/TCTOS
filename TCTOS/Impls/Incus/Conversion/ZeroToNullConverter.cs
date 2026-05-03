@@ -13,6 +13,8 @@ public sealed class ZeroToNullConverter : JsonConverter<int?>
         return intValue;
     }
 
-    public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options) 
-        => writer.WriteStringValue(writer.ToString());
+    public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(writer.ToString());
+    }
 }

@@ -9,9 +9,9 @@ namespace TCTOS;
 
 internal static class Program
 {
-
     private static ILoggerFactory CreateDefaultLoggerFactory(LogLevel logLevel)
-        => LoggerFactory.Create(configure =>
+    {
+        return LoggerFactory.Create(configure =>
         {
             configure.SetMinimumLevel(logLevel);
             configure.AddSimpleConsole(static configure =>
@@ -20,12 +20,14 @@ internal static class Program
                 configure.IncludeScopes = true;
             });
         });
-    
+    }
+
     private static async Task<int> Main(string[] args)
     {
         ILoggerFactory loggerFactory = null!;
-        var container = new DiContainer()
-            .AddLazy(IIncusClient () => new IncusClient(loggerFactory.CreateLogger<IncusClient>()))
+        var container = new DiContainer();
+        container
+            .AddLazy(IIncusClient () => new LocalUnixSocketIncusClient())
             .AddLazy(IContainerProvisioner () => new AnsibleContainerProvisionerImpl())
             .AddLazy(IFeatureRunner () => new JavascriptFeatureRunner())
             .AddLazy(IEnvironmentVariableProvider () => new LocalEnvironmentVariableProviderImpl())
@@ -34,10 +36,12 @@ internal static class Program
             .AddLazy(IUserInformationCollector () => new LocalUserInformationCollector())
             .AddLazy(ICommandRunner () => new LocalCommandRunnerImpl())
             .AddLazy(IFeatureProvider () => new LocalFileSystemFeatureProvider())
-            .AddLazy(IBackgroundCommandRunner () => new SystemdBackgroundCommandRunner());
-        
+            .AddLazy(IBackgroundCommandRunner () => new SystemdBackgroundCommandRunner())
+            .AddLazy(IIncusFileSystem () =>
+                new SshFsIncusFileSystem(container.Get<IBackgroundCommandRunner>()));
+
         var command = new BaseCommand(container);
-        
+
         var parseResult = command.Parse(args);
         foreach (var error in parseResult.Errors)
             await Console.Error.WriteLineAsync(error.Message);
@@ -51,7 +55,7 @@ internal static class Program
         );
 
         return await parseResult.InvokeAsync();
-        
+
         /*var client = new IncusClient(
             DefaultLoggerFactory(LogLevel.Trace).CreateLogger<IncusClient>()
         );
@@ -80,7 +84,7 @@ internal static class Program
         {
             Description = "The container to provision"
         };
-        
+
         var provisionCommand = new Command("provision")
         {
             Description = "Provision the selected container",
@@ -118,7 +122,7 @@ internal static class Program
                 .WaitAndGet()
                 .ThrowIfFailed();
         });
-        
+
         var startCommand = new Command("start")
         {
             Description = "Start the selected container"
@@ -154,7 +158,7 @@ internal static class Program
                 .WaitAndGet()
                 .ThrowIfFailed();
         });
-        
+
         var lsCommand = new Command("ls")
         {
             Description = "List available container"
@@ -173,7 +177,7 @@ internal static class Program
             foreach (var containerName in containerNames)
                 Console.WriteLine($"- {containerName}");
         });
-        
+
         var editCommand = new Command("edit")
         {
             Description = "Edit the config of the container"

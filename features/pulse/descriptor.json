@@ -1,0 +1,6 @@
+{
+    "name": "pulse",
+    "description": "Pass the host's pulseaudio socket into the container",
+    "conflicts": [],
+    "depends": []
+}

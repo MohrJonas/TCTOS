@@ -1,0 +1,83 @@
+const featureName = "x11";
+const xwaylandPidKey = "x11-xwayland-satellite-identifier";
+
+const TCTOS = importNamespace("TCTOS")
+
+function log(msg) {
+    debug(`${featureName}: ${msg}`);
+}
+
+async function canApplyFeature() {
+    log("canApplyFeature");
+    log("Checking for xwayland-satellite installation")
+    const runResult = await commandRunner.RunCommand("xwayland-satellite", ["-v"]);
+    log(runResult);
+    const hasFailed = runResult.HasFailed;
+    log(`Has failed: ${hasFailed}`);
+    if(hasFailed) {
+        log("Command result is failed, returning false");
+        return false;
+    }
+    const exitCode = runResult.GetOrThrow().ExitCode;
+    log(`Exit code is ${exitCode}`);
+    return exitCode == 0;
+}
+
+async function applyFeature() {
+    log("applyFeature");
+    
+    var random = System.Random.Shared.Next(10, 65000);
+
+    log("Starting xwayland-satellite");
+    const identifier = (await backgroundCommandRunner.RunCommandInBackground(
+        "xwayland-satellite", 
+        [
+            `:${random}`, 
+            "-ac", 
+            "-nolisten", "tcp", 
+            "-extension", "MIT-SHM", 
+            "+extension", "SECURITY"
+        ]
+    )).GetOrThrow();
+    
+    const key = `${containerName}-${xwaylandPidKey}`;
+
+    log(`Inserting into non-persistent storage: ${key} -> ${identifier}`);
+    nonPersistentStorage.PutValue(key, identifier);
+
+    log("Updating container config");
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        const device = new TCTOS.Impls.Incus.Devices.IncusDiskDevice();
+        device.Path = `/tmp/.X11-unix/X${random}`;
+        device.Source = `/tmp/.X11-unix/X${random}`; 
+        device.Shift = true;       
+        instance.Devices.Add("x11", device);
+    })).ThrowIfFailed();
+}
+
+async function unapplyFeature() {
+    log("unapplyFeature");
+
+    log("Updating container config");
+    (await TCTOS.Impls.Incus.IncusHelpers.UpdateContainer(incusClient, containerName, instance => {
+        instance.Devices.Remove("x11")
+    })).ThrowIfFailed();
+
+    const key = `${containerName}-${xwaylandPidKey}`;
+    log(`Checking non-persistent storage for key ${key}`);
+    if(nonPersistentStorage.HasKey(key)) {
+        log("Non-persistent storage has xwayland pid key");
+        
+        const value = nonPersistentStorage.GetValue(key);
+        log(`Stored value is ${value}`);
+
+        log("Stopping background service");
+        const runResult = await backgroundCommandRunner.StopBackgroundCommand(value);
+        const hasFailed = runResult.HasFailed;
+        log(`Has failed: ${hasFailed}`);
+        if(hasFailed)
+            log("Command result is failed, returning false");
+        return;
+    }
+    log("Non-persistent storage has no xwayland pid key, exiting");
+}

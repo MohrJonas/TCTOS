@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace TCTOS.Impls.Incus.Response;
 
 public record SyncResponse

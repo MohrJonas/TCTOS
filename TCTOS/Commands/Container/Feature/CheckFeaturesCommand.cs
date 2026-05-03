@@ -5,7 +5,8 @@ using TCTOS.IOC;
 namespace TCTOS.Commands.Container.Feature;
 
 public sealed class CheckFeaturesCommand(DiContainer container)
-    : CommandBase("check", "Check which features are currently applicable", container, arguments: [SharedArguments.ContainerNameArgument])
+    : CommandBase("check", "Check which features are currently applicable", container,
+        arguments: [SharedArguments.ContainerNameArgument])
 {
     protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
     {
@@ -20,7 +21,7 @@ public sealed class CheckFeaturesCommand(DiContainer container)
         var nonPersistentStorage = container.Get<INonPersistentStorage>();
         var runner = container.Get<ICommandRunner>();
         var backgroundRunner = container.Get<IBackgroundCommandRunner>();
-        
+
         var configuration = (await fileSystem.GetContainerConfigurationAsync(containerName)).GetOrThrow()!;
 
         foreach (var featureName in configuration.FeatureNames)

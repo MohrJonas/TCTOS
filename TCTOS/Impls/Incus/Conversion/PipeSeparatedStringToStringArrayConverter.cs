@@ -11,6 +11,8 @@ public sealed class PipeSeparatedStringToStringArrayConverter : JsonConverter<st
         return stringValue?.Split("|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
     }
 
-    public override void Write(Utf8JsonWriter writer, string[] value, JsonSerializerOptions options) 
-        => writer.WriteStringValue(string.Join(" | ", value));
+    public override void Write(Utf8JsonWriter writer, string[] value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(string.Join(" | ", value));
+    }
 }

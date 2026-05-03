@@ -1,0 +1,6 @@
+{
+    "name": "wayland",
+    "description": "Pass the host's wayland socket into the container",
+    "conflicts": [],
+    "depends": []
+}

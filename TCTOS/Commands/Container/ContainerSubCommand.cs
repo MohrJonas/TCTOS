@@ -1,4 +1,5 @@
 using System.CommandLine;
+using TCTOS.Commands.Container.Application;
 using TCTOS.Commands.Container.Feature;
 using TCTOS.Commands.Container.Provision;
 using TCTOS.IOC;
@@ -16,5 +17,6 @@ public sealed class ContainerSubCommand : Command
         Subcommands.Add(new StartContainerCommand(container));
         Subcommands.Add(new StopContainerCommand(container));
         Subcommands.Add(new CreateContainerCommand(container));
+        Subcommands.Add(new ApplicationSubSubCommand(container));
     }
 }
