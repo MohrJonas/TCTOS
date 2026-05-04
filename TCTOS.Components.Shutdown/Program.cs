@@ -16,7 +16,7 @@ internal static class Program
                 configure.IncludeScopes = true;
             });
         });
-        var logger = loggerFactory.CreateLogger("shutodown");
+        var logger = loggerFactory.CreateLogger("shutdown");
         var client = new LocalUnixSocketIncusClient();
         var containers = (await client.GetContainersAsync()).Metadata;
         foreach (var container in containers)
