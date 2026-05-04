@@ -1,4 +1,4 @@
-namespace TCTOS.Console.IOC;
+namespace TCTOS.Console;
 
 public sealed class DiContainer
 {

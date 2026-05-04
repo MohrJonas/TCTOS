@@ -2,7 +2,6 @@ using System.CommandLine;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
-using TCTOS.Console.IOC;
 
 namespace TCTOS.Console.Commands;
 

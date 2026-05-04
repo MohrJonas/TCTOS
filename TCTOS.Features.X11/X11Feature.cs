@@ -30,8 +30,9 @@ public sealed class X11Feature : IFeature
             var displayId = Random.Shared.Next(0, short.MaxValue);
             var backgroundJobIdentifier = (await featureContext.BackgroundCommandRunner.RunCommandInBackground(
                 "xwayland-satellite",
-                ["-ac", "-nolisten", "tcp", "-extension", "MIT-SHM", "+extension", "SECURITY"]
+                [$":{displayId}", "-ac", "-nolisten", "tcp", "-extension", "MIT-SHM", "+extension", "SECURITY"]
             )).GetOrThrow();
+            await Task.Delay(500);
             featureContext.NonPersistentStorage.PutValue(GetBackgroundJobKey(containerName), backgroundJobIdentifier);
             var socketPath = $"/tmp/.X11-unix/X{displayId}";
             (await IncusHelper.AddDeviceAsync(featureContext.IncusClient, containerName, DeviceName, new IncusDiskDevice

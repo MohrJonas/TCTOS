@@ -27,6 +27,13 @@ public static class StartContainerOperation
             if (!containerNames.Contains(containerName))
                 throw new NoSuchContainerException(containerName);
 
+            var instanceResponse = (await incusClient.GetContainerAsync(containerName));
+            instanceResponse.ThrowOnError();
+            var instance = instanceResponse.Metadata;
+
+            if (instance.Status == "Started")
+                return;
+            
             var startResponse = (await incusClient.StartContainerAsync(containerName));
             startResponse.ThrowOnError();
             await incusClient.WaitForOperationAsync(startResponse.Operation!);

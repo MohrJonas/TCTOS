@@ -1,6 +1,5 @@
 using System.CommandLine;
-using TCTOS.Console.Abstractions;
-using TCTOS.Console.IOC;
+using TCTOS.Abstractions;
 
 namespace TCTOS.Console.Commands.Container.Feature;
 

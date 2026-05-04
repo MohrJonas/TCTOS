@@ -1,6 +1,6 @@
 using TCTOS.Abstractions.Incus.DTOs;
 
-namespace TCTOS.Util;
+namespace TCTOS.Operations;
 
 public static class Extensions
 {

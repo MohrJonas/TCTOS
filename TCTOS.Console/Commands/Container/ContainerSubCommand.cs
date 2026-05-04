@@ -2,7 +2,6 @@ using System.CommandLine;
 using TCTOS.Console.Commands.Container.Application;
 using TCTOS.Console.Commands.Container.Feature;
 using TCTOS.Console.Commands.Container.Provision;
-using TCTOS.Console.IOC;
 
 namespace TCTOS.Console.Commands.Container;
 

@@ -1,7 +1,7 @@
 using System.CommandLine;
-using TCTOS.Console.Abstractions;
-using TCTOS.Console.IOC;
-using TCTOS.Console.Exceptions;
+using Microsoft.Extensions.Logging;
+using TCTOS.Abstractions;
+using TCTOS.Operations;
 
 namespace TCTOS.Console.Commands.Container;
 
@@ -13,43 +13,29 @@ public sealed class StopContainerCommand(DiContainer container)
     {
         var containerName = parseResult.GetRequiredValue(SharedArguments.ContainerNameArgument);
 
-        var client = container.Get<IIncusClient>();
-
-        var containerNames = (await client.GetContainerNamesAsync()).Metadata.Select(name => name.Split("/").Last());
-        if (!containerNames.Contains(containerName))
-            throw new NoSuchContainerException(containerName);
-
-        var stopResponse = (await client.StopContainerAsync(containerName));
-        stopResponse.ThrowOnError();
-        await client.WaitForOperationAsync(stopResponse.Operation!);
-
+        var logger = container.Get<ILogger>();
+        var incusClient = container.Get<IIncusClient>();
+        var userInformationCollector = container.Get<IUserInformationCollector>();
         var nonPersistentStorage = container.Get<INonPersistentStorage>();
-
-        var key = $"{containerName}-enabled-features";
-        var enabledFeatures = nonPersistentStorage.GetValue<string[]>(key);
-
         var featureProvider = container.Get<IFeatureProvider>();
         var featureRunner = container.Get<IFeatureRunner>();
         var fileSystem = container.Get<IFileSystem>();
-        var userInformationCollector = container.Get<IUserInformationCollector>();
-        var envProvider = container.Get<IEnvironmentVariableProvider>();
-        var commandRunner = container.Get<ICommandRunner>();
+        var variableProvider = container.Get<IEnvironmentVariableProvider>();
+        var runner = container.Get<ICommandRunner>();
         var backgroundRunner = container.Get<IBackgroundCommandRunner>();
 
-        foreach (var featureName in enabledFeatures)
-        {
-            var featureText = (await featureProvider.GetFeatureScriptTextAsync(featureName)).GetOrThrow();
-            await featureRunner.UnapplyFeature(
-                featureText,
-                containerName,
-                fileSystem,
-                client,
-                nonPersistentStorage,
-                userInformationCollector,
-                envProvider,
-                commandRunner,
-                backgroundRunner
-            );
-        }
+        (await StopContainerOperation.StopContainerAsync(
+            containerName,
+            logger,
+            incusClient,
+            userInformationCollector,
+            nonPersistentStorage,
+            featureProvider,
+            featureRunner,
+            fileSystem,
+            variableProvider,
+            runner,
+            backgroundRunner
+        )).ThrowIfFailed();
     }
 }

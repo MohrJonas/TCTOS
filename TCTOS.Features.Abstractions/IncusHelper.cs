@@ -12,7 +12,8 @@ public static class IncusHelper
             var instancePut = (await client.GetContainerAsync(containerName)).Metadata.ToInstancePut();
             instancePut.Devices?.Remove(deviceName);
             instancePut.Devices?.Add(deviceName, device);
-            await client.UpdateContainerAsync(containerName, instancePut);
+            var response = await client.UpdateContainerAsync(containerName, instancePut);
+            await client.WaitForOperationAsync(response.Operation!);
         });
 
     public static Task<Result> RemoveDeviceAsync(IIncusClient client, string containerName, string deviceName) =>
@@ -20,6 +21,7 @@ public static class IncusHelper
         {
             var instancePut = (await client.GetContainerAsync(containerName)).Metadata.ToInstancePut();
             instancePut.Devices?.Remove(deviceName);
-            await client.UpdateContainerAsync(containerName, instancePut);
+            var response = await client.UpdateContainerAsync(containerName, instancePut);
+            await client.WaitForOperationAsync(response.Operation!);
         });
 }

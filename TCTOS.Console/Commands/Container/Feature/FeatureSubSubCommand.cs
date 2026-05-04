@@ -1,5 +1,3 @@
-using TCTOS.Console.IOC;
-
 namespace TCTOS.Console.Commands.Container.Feature;
 
 public sealed class FeatureSubSubCommand : CommandBase

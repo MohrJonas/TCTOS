@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using TCTOS.Abstractions;
 using TCTOS.Console.Commands;
-using TCTOS.Console.IOC;
 using TCTOS.Impls.Local;
 
 namespace TCTOS.Console;
@@ -26,6 +25,7 @@ internal static class Program
         ILoggerFactory loggerFactory = null!;
         var container = new DiContainer();
         container
+            .AddLazy(ILogger () => loggerFactory.CreateLogger(string.Empty))
             .AddLazy(IIncusClient () => new LocalUnixSocketIncusClient())
             .AddLazy(IContainerProvisioner () => new AnsibleContainerProvisionerImpl())
             .AddLazy(IFeatureRunner () => new CSharpFeatureRunner())

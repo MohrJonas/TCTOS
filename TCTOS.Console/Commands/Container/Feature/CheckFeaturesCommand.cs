@@ -1,6 +1,6 @@
 using System.CommandLine;
-using TCTOS.Console.Abstractions;
-using TCTOS.Console.IOC;
+using Spectre.Console;
+using TCTOS.Abstractions;
 
 namespace TCTOS.Console.Commands.Container.Feature;
 
@@ -24,6 +24,7 @@ public sealed class CheckFeaturesCommand(DiContainer container)
 
         var configuration = (await fileSystem.GetContainerConfigurationAsync(containerName)).GetOrThrow()!;
 
+        List<(string, bool, string)> results = [];
         foreach (var featureName in configuration.FeatureNames)
         {
             var featureText = (await featureProvider.GetFeatureScriptTextAsync(featureName)).GetOrThrow();
@@ -38,7 +39,29 @@ public sealed class CheckFeaturesCommand(DiContainer container)
                 runner,
                 backgroundRunner
             );
-            System.Console.WriteLine(canApply ? $"{featureName}\t\t\tApplicable" : $"{featureName}\t\t\tNot Applicable");
+            results.Add((featureName, canApply.Data, canApply.Explanation));
         }
+        
+        if(parseResult.RootCommandResult.GetRequiredValue(SharedOptions.PlainOption))
+            DisplayPlain([..results]);
+        else
+            DisplayPretty([..results]);
+    }
+
+    private static void DisplayPlain((string, bool, string)[] applyResults)
+    {
+        foreach (var applyResult in applyResults)
+            System.Console.WriteLine(applyResult.Item2 ? $"{applyResult.Item1}\tApplicable" : $"{applyResult.Item1}\tNot Applicable\t{applyResult.Item3}");
+    }
+    
+    private static void DisplayPretty((string, bool, string)[] applyResults)
+    {
+        var table = new Table()
+            .AddColumn("Name")
+            .AddColumn("Is Applicable")
+            .AddColumn("Reason");
+        foreach (var applyResult in applyResults)
+            table.AddRow(applyResult.Item1, applyResult.Item2.ToString(), applyResult.Item3);
+        AnsiConsole.Write(table);
     }
 }

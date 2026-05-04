@@ -1,7 +1,6 @@
 using System.CommandLine;
 using System.Text.RegularExpressions;
-using TCTOS.Console.Abstractions;
-using TCTOS.Console.IOC;
+using TCTOS.Abstractions;
 
 namespace TCTOS.Console.Commands.Container.Application;
 

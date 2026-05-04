@@ -25,6 +25,13 @@ public static class StopContainerOperation
         if (!containerNames.Contains(containerName))
             throw new NoSuchContainerException(containerName);
 
+        var instanceResponse = await incusClient.GetContainerAsync(containerName);
+        instanceResponse.ThrowOnError();
+        var instance = instanceResponse.Metadata;
+
+        if (instance.Status == "Stopped")
+            return;
+        
         var stopResponse = (await incusClient.StopContainerAsync(containerName));
         stopResponse.ThrowOnError();
         await incusClient.WaitForOperationAsync(stopResponse.Operation!);

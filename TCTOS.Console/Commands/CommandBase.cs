@@ -1,5 +1,4 @@
 using System.CommandLine;
-using TCTOS.Console.IOC;
 
 namespace TCTOS.Console.Commands;
 

@@ -1,6 +1,7 @@
 using System.CommandLine;
-using TCTOS.Console.Abstractions;
-using TCTOS.Console.IOC;
+using Spectre.Console;
+using TCTOS.Abstractions;
+using TCTOS.Abstractions.Incus.DTOs;
 
 namespace TCTOS.Console.Commands.Container;
 
@@ -10,14 +11,31 @@ public sealed class ListContainersCommand(DiContainer container)
     protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
     {
         var client = container.Get<IIncusClient>();
-        var containers = (await client.GetContainersAsync()).Metadata;
-        var nonPersistentStorage = container.Get<INonPersistentStorage>();
-        foreach (var instance in containers)
-        {
-            var key = $"{instance.Name}-enabled-features";
-            var enabledFeatures = nonPersistentStorage.PeekValue<string[]>(key);
-            System.Console.WriteLine(
-                $"{instance.Name}\t{instance.Description}\t{instance.Status}\t{string.Join(", ", enabledFeatures)}");
-        }
+        
+        var containersResponse = await client.GetContainersAsync();
+        containersResponse.ThrowOnError();
+        var containers = containersResponse.Metadata;
+        if(parseResult.RootCommandResult.GetRequiredValue(SharedOptions.PlainOption))
+            DisplayPlain(containers);
+        else
+            DisplayPretty(containers);
+    }
+
+    private static void DisplayPlain(Instance[] instances)
+    {
+        foreach(var instance in instances)
+            System.Console.WriteLine($"{instance.Name}\t{instance.Description}\t{instance.Status},{instance.Type}");
+    }
+
+    private static void DisplayPretty(Instance[] instances)
+    {
+        var table = new Table()
+            .AddColumn("Name")
+            .AddColumn("Description")
+            .AddColumn("Status")
+            .AddColumn("Type");
+        foreach (var instance in instances)
+            table.AddRow(instance.Name, instance.Description, instance.Status, instance.Type);
+        AnsiConsole.Write(table);
     }
 }

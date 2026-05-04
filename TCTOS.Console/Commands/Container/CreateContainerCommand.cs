@@ -1,10 +1,8 @@
 using System.CommandLine;
-using TCTOS.Console.Abstractions;
-using TCTOS.Console.Abstractions.Data;
-using TCTOS.Console.Abstractions.Incus.Data;
-using TCTOS.Console.Abstractions.Incus.Devices;
-using TCTOS.Console.Abstractions.Incus.DTOs;
-using TCTOS.Console.IOC;
+using Microsoft.Extensions.Logging;
+using TCTOS.Abstractions;
+using TCTOS.Abstractions.Data;
+using TCTOS.Operations;
 using KnownColor = System.Drawing.KnownColor;
 
 namespace TCTOS.Console.Commands.Container;
@@ -95,84 +93,28 @@ public sealed class CreateContainerCommand(DiContainer container)
     protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
     {
         var containerName = parseResult.GetRequiredValue(SharedArguments.ContainerNameArgument);
-        var mangledContainerName = NameMangler.MangleContainerName(containerName);
+        var image = parseResult.GetRequiredValue(CreateContainerCommandArguments.ImageNameArgument);
+        var color = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerColorOption);
+        var enabledFeatures = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerFeaturesOption);
+        var description = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerDescriptionOption);
 
-        var client = container.Get<IIncusClient>();
-
-        var existingContainerNames
-            = (await client.GetContainersAsync()).Metadata.Select(static i => i.Name);
-
-        if (existingContainerNames.Contains(mangledContainerName))
-            throw new Exception(
-                $"Container with the name \"{mangledContainerName}\" ({containerName} before mangle) already exists");
-
+        var logger = container.Get<ILogger>();
+        var incusClient = container.Get<IIncusClient>();
         var featureProvider = container.Get<IFeatureProvider>();
-        var existingFeatureNames = (await featureProvider.GetAvailableFeaturesAsync())
-            .GetOrThrow()
-            .Select(d => d.Name)
-            .ToArray();
-
-        foreach (var featureName in parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerFeaturesOption))
-            if (!existingFeatureNames.Contains(featureName))
-                throw new Exception($"Feature with name \"{featureName}\" does not exist");
-
         var fileSystem = container.Get<IFileSystem>();
-
-        var globalConfiguration = (await fileSystem.GetConfigurationAsync()).GetOrThrow();
-
-        if (globalConfiguration == null)
-            throw new Exception("No global configuration found");
-
-        var response = await client.CreateContainerAsync(new InstancesPost
-        {
-            Name = mangledContainerName,
-            Description = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerDescriptionOption),
-            Devices = new Dictionary<string, object>
-            {
-                {
-                    "root", new IncusDiskDevice
-                    {
-                        Path = "/",
-                        Pool = globalConfiguration.PoolName
-                    }
-                },
-                {
-                    "net", new IncusNicDevice
-                    {
-                        Name = "eth0",
-                        Network = globalConfiguration.BridgeName
-                    }
-                }
-            },
-            Source = new InstanceSource
-            {
-                Type = ImageSourceType.Image,
-                Alias = "ubuntu/questing/default/amd64",
-                Server = "https://images.linuxcontainers.org",
-                Protocol = "simplestreams",
-                Mode = TransferMode.Pull
-            },
-            Config = new Dictionary<string, object>
-            {
-                { "security.nesting", true }
-            },
-            Type = "container",
-            Profiles = []
-        });
-
-        response.ThrowOnError();
-
-        (await client.WaitForOperationAsync(response.Operation!)).ThrowOnError();
-
         var provisioner = container.Get<IContainerProvisioner>();
 
-        (await fileSystem.SetProvisioningFileContentAsync(containerName,
-            provisioner.GetDefaultProvisionFileTemplate())).ThrowIfFailed();
-
-        (await fileSystem.SetContainerConfigurationAsync(containerName, new ContainerConfiguration
-        {
-            FeatureNames = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerFeaturesOption),
-            Color = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerColorOption)
-        })).ThrowIfFailed();
+        (await CreateContainerOperation.CreateContainerAsync(
+            containerName,
+            color,
+            enabledFeatures,
+            description,
+            image,
+            logger,
+            incusClient,
+            provisioner,
+            featureProvider,
+            fileSystem
+        )).ThrowIfFailed();
     }
 }
