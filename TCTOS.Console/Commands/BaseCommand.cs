@@ -14,5 +14,6 @@ public sealed class BaseCommand : RootCommand
         Subcommands.Add(new EventsCommand(container));
         Subcommands.Add(new FeaturesCommand(container));
         Subcommands.Add(new LaunchCommand(container));
+        Subcommands.Add(new InitializeOsCommand(container));
     }
 }

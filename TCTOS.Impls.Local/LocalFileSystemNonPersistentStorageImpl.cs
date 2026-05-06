@@ -3,7 +3,7 @@ using TCTOS.Abstractions;
 
 namespace TCTOS.Impls.Local;
 
-public sealed class LocalFileSystemNonPersistentStorageImpl : INonPersistentStorage
+public sealed class LocalFileSystemNonPersistentStorageImpl(string nonPersistentStorageRoot) : INonPersistentStorage
 {
     public void PutValue<TData>(string key, TData value)
     {
@@ -34,8 +34,8 @@ public sealed class LocalFileSystemNonPersistentStorageImpl : INonPersistentStor
             .Aggregate(key, (s, c) => s.Replace(c.ToString(), string.Empty));
     }
 
-    private static string BuildPathForKey(string key)
+    private string BuildPathForKey(string key)
     {
-        return Path.Combine(Path.GetTempPath(), SanitizeKeyForPath(key));
+        return Path.Combine(nonPersistentStorageRoot, SanitizeKeyForPath(key));
     }
 }

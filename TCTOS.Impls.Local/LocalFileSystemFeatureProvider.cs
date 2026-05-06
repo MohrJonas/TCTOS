@@ -5,18 +5,18 @@ using TCTOS.Common;
 
 namespace TCTOS.Impls.Local;
 
-public sealed class LocalFileSystemFeatureProvider : IFeatureProvider
+public sealed class LocalFileSystemFeatureProvider(string persistentRootPath) : IFeatureProvider
 {
     public Task<Result<FeatureDescriptor[]>> GetAvailableFeaturesAsync()
     {
         return RunCatchingAsync(async () =>
         {
-            var root = LocalFileSystemImpl.PathHelper.GetFeaturesRootPath();
+            var root = PathHelper.GetFeaturesRootPath(persistentRootPath);
             return await Task.WhenAll(Directory.GetDirectories(root)
                 .Select(async path =>
                 {
                     var featureName = Path.GetFileName(path);
-                    var descriptorPath = LocalFileSystemImpl.PathHelper.GetFeatureDescriptorPath(featureName);
+                    var descriptorPath = PathHelper.GetFeatureDescriptorPath(persistentRootPath, featureName);
                     var contents = await File.ReadAllTextAsync(descriptorPath);
                     return JsonSerializer.Deserialize<FeatureDescriptor>(contents)!;
                 }));
@@ -26,7 +26,7 @@ public sealed class LocalFileSystemFeatureProvider : IFeatureProvider
     public Task<Result<string>> GetFeatureScriptTextAsync(string featureName)
     {
         return RunCatchingAsync(async () =>
-            await File.ReadAllTextAsync(LocalFileSystemImpl.PathHelper.GetFeatureExecutablePath(featureName))
+            await File.ReadAllTextAsync(PathHelper.GetFeatureExecutablePath(persistentRootPath, featureName))
         );
     }
 }

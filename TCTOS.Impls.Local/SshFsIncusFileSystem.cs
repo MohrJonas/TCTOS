@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using TCTOS.Abstractions;
 using TCTOS.Common;
 
@@ -96,6 +97,41 @@ public sealed class SshFsIncusFileSystem(IBackgroundCommandRunner backgroundComm
             }
         });
     }
+
+    public Task<Result<byte[]?>> GetIconBytesAsync(string iconName) => RunCatchingAsync<byte[]?>(async () =>
+    {
+        const string hicolorThemeDirectory = "/usr/share/icons/hicolor";
+        var indexFilePath = Path.Combine(hicolorThemeDirectory, "index.theme");
+        if (!(await DoesFileExistAsync(indexFilePath)).GetOrThrow())
+            return null;
+        var indexFileContent = (await GetFileTextAsync(indexFilePath)).GetOrThrow();
+        var indexFile = ThemeFileParser.ParseThemeFileFromText(indexFileContent);
+
+        var folderIconPaths = indexFile["Icon Theme"]["Directories"]
+            .Split(',')
+            .Where(path => indexFile[path]["Context"] == "Applications")
+            .OrderByDescending(path =>
+            {
+                var size = int.Parse(indexFile[path]["Size"]);
+                var scale = indexFile[path].ContainsKey("Scale")
+                    ? int.Parse(indexFile[path]["Scale"])
+                    : 1;
+                return size / scale;
+            })
+            .Select(path => Path.Combine(hicolorThemeDirectory, path));
+
+        foreach (var folderIconPath in folderIconPaths)
+        {
+            var filesInDirectory = (await ListFilesAsync(folderIconPath)).GetOrThrow();
+            foreach (var file in filesInDirectory)
+            {
+                if (Path.GetFileNameWithoutExtension(file) == iconName)
+                    return (await GetFileAsync(file)).GetOrThrow();
+            }
+        }
+        
+        return null;
+    });
 
     private string RemoveMountPointPrefix(string path)
     {

@@ -29,12 +29,12 @@ public static class StopContainerOperation
         instanceResponse.ThrowOnError();
         var instance = instanceResponse.Metadata;
 
-        if (instance.Status == "Stopped")
-            return;
-        
-        var stopResponse = (await incusClient.StopContainerAsync(containerName));
-        stopResponse.ThrowOnError();
-        await incusClient.WaitForOperationAsync(stopResponse.Operation!);
+        if (instance.Status == "Running")
+        {
+            var stopResponse = await incusClient.StopContainerAsync(containerName);
+            stopResponse.ThrowOnError();
+            await incusClient.WaitForOperationAsync(stopResponse.Operation!);   
+        }
 
         var key = $"{containerName}-enabled-features";
         var enabledFeatures = nonPersistentStorage.GetValue<string[]>(key);

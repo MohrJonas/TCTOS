@@ -11,4 +11,5 @@ public interface IIncusFileSystem
     public Task<Result<byte[]>> GetFileAsync(string containerPath);
     public Task<Result<bool>> DoesFileExistAsync(string containerPath);
     public Task<Result<bool>> DoesDirectoryExistAsync(string containerPath);
+    public Task<Result<byte[]?>> GetIconBytesAsync(string iconName);
 }

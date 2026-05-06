@@ -16,10 +16,10 @@ public sealed class PulseaudioFeature : IFeature
                 if (!featureContext.EnvironmentVariableProvider.HasVariable("XDG_RUNTIME_DIR"))
                     return Task.FromResult(new DescribedValue<bool>(false, "$XDG_RUNTIME_DIR is not set"));
                 var runtimeDir = featureContext.EnvironmentVariableProvider.GetVariableValue("XDG_RUNTIME_DIR");
-                var pulseFolderPath = Path.Combine(runtimeDir, "pulse");
-                return Task.FromResult(!Directory.Exists(pulseFolderPath)
-                    ? new DescribedValue<bool>(false, $"Directory \"{pulseFolderPath}\" does not exist")
-                    : new DescribedValue<bool>(true, $"Directory \"{pulseFolderPath}\" exists"));
+                var pulseSocketPath = Path.Combine(runtimeDir, "pulse", "native");
+                return Task.FromResult(!Directory.Exists(pulseSocketPath)
+                    ? new DescribedValue<bool>(false, $"Socket path \"{pulseSocketPath}\" does not exist")
+                    : new DescribedValue<bool>(true, $"Socket path \"{pulseSocketPath}\" exists"));
             }
             catch (Exception exception)
             {
@@ -31,12 +31,12 @@ public sealed class PulseaudioFeature : IFeature
         ResultStatics.RunCatchingAsync(async () =>
         {
             var runtimeDir = featureContext.EnvironmentVariableProvider.GetVariableValue("XDG_RUNTIME_DIR");
-            var directoryPath = Path.Combine(runtimeDir, "pulse");
+            var socketPath = Path.Combine(runtimeDir, "pulse", "native");
             (await IncusHelper.AddDeviceAsync(featureContext.IncusClient, containerName, DeviceName,
                 new IncusDiskDevice
                 {
-                    Path = directoryPath,
-                    Source = directoryPath,
+                    Path = socketPath,
+                    Source = socketPath,
                     Shift = true
                 })).ThrowIfFailed();
         });
