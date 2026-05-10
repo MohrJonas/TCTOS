@@ -2,11 +2,11 @@ namespace TCTOS.Console.Commands.Container.Provision;
 
 public sealed class ProvisionSubSubCommand : CommandBase
 {
-    public ProvisionSubSubCommand(DiContainer container)
-        : base("provision", "Container provision-related commands", container, ["prov"])
+    public ProvisionSubSubCommand()
+        : base("provision", "Container provision-related commands", ["prov"])
     {
-        Subcommands.Add(new ProvisionContainerCommand(container));
-        Subcommands.Add(new EditContainerProvisionCommand(container));
-        Subcommands.Add(new ShowContainerProvisionCommand(container));
+        Subcommands.Add(new ProvisionContainerCommand());
+        Subcommands.Add(new EditContainerProvisionCommand());
+        Subcommands.Add(new ShowContainerProvisionCommand());
     }
 }

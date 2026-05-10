@@ -1,10 +1,10 @@
-using System.CommandLine;
-using Microsoft.Extensions.Logging;
-using TCTOS.Abstractions;
-using TCTOS.Abstractions.Data;
-using TCTOS.Operations;
-using KnownColor = System.Drawing.KnownColor;
+ using System.CommandLine;
 
+using TCTOS.Abstractions.Data;
+using TCTOS.Abstractions.Data.Messages;
+using TCTOS.Client.Common;
+using KnownColor = System.Drawing.KnownColor;
+ 
 namespace TCTOS.Console.Commands.Container;
 
 public static class CreateContainerCommandOptions
@@ -80,8 +80,8 @@ public static class CreateContainerCommandArguments
     };
 }
 
-public sealed class CreateContainerCommand(DiContainer container)
-    : CommandBase("create", "Create a new container", container, ["new"],
+public sealed class CreateContainerCommand()
+    : CommandBase("create", "Create a new container", ["new"],
         arguments: [CreateContainerCommandArguments.ImageNameArgument, SharedArguments.ContainerNameArgument],
         options:
         [
@@ -90,31 +90,32 @@ public sealed class CreateContainerCommand(DiContainer container)
             CreateContainerCommandOptions.ContainerColorOption
         ])
 {
-    protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
+    protected override async Task RunAsync(ParseResult parseResult, CancellationToken token)
     {
+        var plain = parseResult.GetRequiredValue(SharedOptions.PlainOption);
         var containerName = parseResult.GetRequiredValue(SharedArguments.ContainerNameArgument);
         var image = parseResult.GetRequiredValue(CreateContainerCommandArguments.ImageNameArgument);
         var color = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerColorOption);
         var enabledFeatures = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerFeaturesOption);
         var description = parseResult.GetRequiredValue(CreateContainerCommandOptions.ContainerDescriptionOption);
+        
+        var socketPath = parseResult.GetRequiredValue(SharedOptions.SocketPathOption);
+        
+        var writer = new UnixSocketWriter(socketPath);
+        
+        var task = writer.WriteAsync<Abstractions.Data.Container[]>(new CreateContainerSocketMessage
+        {
+            ContainerName = containerName,
+            Color = color,
+            Features = enabledFeatures,
+            Image = image,
+            Description = description
+        });
 
-        var logger = container.Get<ILogger>();
-        var incusClient = container.Get<IIncusClient>();
-        var featureProvider = container.Get<IFeatureProvider>();
-        var fileSystem = container.Get<IFileSystem>();
-        var provisioner = container.Get<IContainerProvisioner>();
-
-        (await CreateContainerOperation.CreateContainerAsync(
-            containerName,
-            color,
-            enabledFeatures,
-            description,
-            image,
-            logger,
-            incusClient,
-            provisioner,
-            featureProvider,
-            fileSystem
-        )).ThrowIfFailed();
+        var response = plain
+            ? await task
+            : await Spectre.Console.SpinnerExtensions.Spinner(task);
+        
+        response.ExitOnError();
     }
 }

@@ -9,7 +9,7 @@ using TCTOS.Operations.Exceptions;
 
 namespace TCTOS.Operations;
 
-public class CreateContainerOperation
+public static class CreateContainerOperation
 {
     public static Task<Result> CreateContainerAsync(
         string containerName,
@@ -24,12 +24,16 @@ public class CreateContainerOperation
         IFileSystem fileSystem
     ) => RunCatchingAsync(async () =>
     {
-        var mangledContainerName = NameMangler.MangleContainerName(containerName);
-
+        if (!NameValidator.IsValidContainerName(containerName))
+        {
+            logger.LogWarning("Container name {name} is invalid", containerName);
+            throw new InvalidContainerNameException(containerName);
+        }
+            
         var existingContainerNames
             = (await incusClient.GetContainersAsync()).Metadata.Select(static i => i.Name);
 
-        if (existingContainerNames.Contains(mangledContainerName))
+        if (existingContainerNames.Contains(containerName))
             throw new ContainerAlreadyExistsException(containerName);
 
         var existingFeatureNames = (await featureProvider.GetAvailableFeaturesAsync())
@@ -48,7 +52,7 @@ public class CreateContainerOperation
 
         var response = await incusClient.CreateContainerAsync(new InstancesPost
         {
-            Name = mangledContainerName,
+            Name = containerName,
             Description = containerDescription,
             Devices = new Dictionary<string, object>
             {
@@ -78,7 +82,7 @@ public class CreateContainerOperation
             Config = new Dictionary<string, object>
             {
                 { "security.nesting", true },
-                { "ecurity.protection.delete", true },
+                //{ "security.protection.delete", true },
                 { "security.guestapi", false }
             },
             Type = "container",

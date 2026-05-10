@@ -1,3 +1,5 @@
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using TCTOS.Abstractions;
 using TCTOS.Abstractions.Data.DesktopFiles;
 using TCTOS.Common;
@@ -13,7 +15,8 @@ public static class ExportApplicationOperation
         string containerName,
         string containerDesktopFilePath,
         IComputer computer,
-        IIncusFileSystem incusFileSystem
+        IIncusFileSystem incusFileSystem,
+        IFileSystem fileSystem
     ) => RunCatchingAsync(async () =>
     {
         try
@@ -22,6 +25,8 @@ public static class ExportApplicationOperation
 
             var fileContents = (await incusFileSystem.GetFileTextAsync(containerDesktopFilePath)).GetOrThrow();
             var desktopFile = DesktopFileParser.ParseFromText(fileContents);
+
+            var containerConfig = (await fileSystem.GetContainerConfigurationAsync(containerName)).GetOrThrow()!;
 
             List<IDesktopFileLine> lines = [];
             foreach (var line in desktopFile.Lines)
@@ -37,14 +42,21 @@ public static class ExportApplicationOperation
                     if (iconBytes != null)
                     {
                         var iconName = Guid.NewGuid().ToString();
-                        var iconPath = (await computer.AddIconFileAsync(iconName, iconBytes)).GetOrThrow();
-                        lines.Add(iconDesktopFileLine with { Value = iconPath});
+                        using var imageBytesStream = new MemoryStream(iconBytes);
+                        using var image = await Image.LoadAsync<Rgba32>(imageBytesStream);
+                        using var moduledImage = ColorModulator.ModulateImage(image, containerConfig.Color);
+                        using var modulatedImageBytesStream = new MemoryStream();
+                        await moduledImage.SaveAsync(modulatedImageBytesStream, image.Metadata.DecodedImageFormat!);
+                        var iconPath =
+                            (await computer.AddIconFileAsync(iconName, containerName,
+                                modulatedImageBytesStream.ToArray())).GetOrThrow();
+                        lines.Add(iconDesktopFileLine with { Value = iconPath });
                     }
                     else
                         lines.Add(line);
                 }
                 else
-                    lines.Add(line);   
+                    lines.Add(line);
             }
 
             desktopFile = new DesktopFile(lines.ToArray());

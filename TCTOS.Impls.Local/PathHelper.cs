@@ -22,6 +22,31 @@ internal static class PathHelper
         return Path.Combine(GetPerContainerPath(persistentRootPath, containerName), "configuration.json");
     }
 
+    public static string GetPerContainerMountPath(string persistentRootPath, string containerName)
+    {
+        return Path.Combine(GetPerContainerPath(persistentRootPath, containerName), "mount");
+    }
+
+    public static string GetDesktopFilesRootPath(string persistentRootPath)
+    {
+        return Path.Combine(persistentRootPath, "applications");
+    }
+    
+    public static string GetDesktopFilePath(string persistentRootPath, string desktopFileName)
+    {
+        return Path.Combine(GetDesktopFilesRootPath(persistentRootPath), desktopFileName);
+    }
+
+    public static string GetIconFileRootPath(string persistentRootPath, string containerName)
+    {
+        return Path.Combine(GetPerContainerPath(persistentRootPath, containerName), "icons");
+    }
+    
+    public static string GetIconFilePath(string persistentRootPath, string containerName, string iconFileName)
+    {
+        return Path.Combine(GetIconFileRootPath(persistentRootPath, containerName), iconFileName);
+    }
+    
     public static string GetConfigurationPath(string persistentRootPath)
     {
         return Path.Combine(persistentRootPath, "configuration.json");
@@ -46,7 +71,7 @@ internal static class PathHelper
     {
         return Path.Combine(GetFeatureRootPath(persistentRootPath, featureName), "feature");
     }
-
+    
     public static string GetTemporaryPath(string nonPersistentRootPath)
         => Path.Combine(nonPersistentRootPath, Guid.NewGuid().ToString());
 }

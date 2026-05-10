@@ -11,6 +11,8 @@ public static class LaunchApplicationOperation
         ILogger logger,
         string containerName,
         string[] commandAndArgs,
+        uint uid,
+        uint gid,
         IIncusClient incusClient,
         IUserInformationCollector userInformationCollector,
         INonPersistentStorage nonPersistentStorage,
@@ -22,40 +24,57 @@ public static class LaunchApplicationOperation
         IBackgroundCommandRunner backgroundCommandRunner
     ) => RunCatchingAsync(async () =>
     {
+        logger.LogInformation("Launching application {application} for {containerName}",
+            string.Join(" ", commandAndArgs), containerName);
+
         var containerNames =
-            (await incusClient.GetContainerNamesAsync()).Metadata.Select(name => name.Split("/").Last());
+            (await incusClient.GetContainerNamesAsync()).Metadata.Select(name => name.Split("/").Last()).ToArray();
+
+        logger.LogDebug("Available containers: {containers}", string.Join(", ", containerNames));
+
         if (!containerNames.Contains(containerName))
             throw new NoSuchContainerException(containerName);
 
-        var instanceResponse = (await incusClient.GetContainerAsync(containerName));
+        logger.LogInformation("Fetching container state for {containerName}", containerName);
+        var instanceResponse = await incusClient.GetContainerAsync(containerName);
         instanceResponse.ThrowOnError();
         var instance = instanceResponse.Metadata;
 
+        logger.LogDebug("Container {containerName} status: {status}", containerName, instance.Status);
+
         if (instance.Status == "Stopped")
         {
+            logger.LogInformation("Container {containerName} not running, starting", containerName);
             (await StartContainerOperation.StartContainerAsync(
-                containerName, 
-                logger, 
-                incusClient, 
-                userInformationCollector, 
-                nonPersistentStorage, 
+                containerName,
+                uid,
+                gid,
+                logger,
+                incusClient,
+                userInformationCollector,
+                nonPersistentStorage,
                 featureProvider,
-                featureRunner, 
-                fileSystem, 
-                environmentVariableProvider, 
-                commandRunner, 
+                featureRunner,
+                fileSystem,
+                environmentVariableProvider,
+                commandRunner,
                 backgroundCommandRunner
             )).ThrowIfFailed();
         }
-        
+
         var envKey = $"{containerName}-env";
-        
+        logger.LogDebug("Env key is {envKey}", envKey);
+
+        logger.LogInformation("Starting command in container");
         (await incusClient.RunCommand(containerName, "/sbin/simlog",
+            0, 0,
             [
-                "--uid", userInformationCollector.GetUid().ToString(),
-                "--gid", userInformationCollector.GetGid().ToString(),
+                "--uid", uid.ToString(),
+                "--gid", gid.ToString(),
                 "--", ..commandAndArgs
             ], nonPersistentStorage.PeekValue<Dictionary<string, object>>(envKey)
         )).ThrowOnError();
+
+        logger.LogInformation("Launch in container {containerName} done", containerName);
     });
 }

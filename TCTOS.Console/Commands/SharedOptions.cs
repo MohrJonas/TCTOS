@@ -15,4 +15,10 @@ public static class SharedOptions
         Description = "Use plain output format, stripping all colors, progress bars etc.",
         DefaultValueFactory = _ => false
     };
+
+    public static readonly Option<string> SocketPathOption = new("--socket")
+    {
+        Description = "Path to the tctos control socket",
+        DefaultValueFactory = _ => "/tmp/tctos.socket"
+    };
 }

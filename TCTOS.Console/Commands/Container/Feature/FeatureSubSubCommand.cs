@@ -2,11 +2,11 @@ namespace TCTOS.Console.Commands.Container.Feature;
 
 public sealed class FeatureSubSubCommand : CommandBase
 {
-    public FeatureSubSubCommand(DiContainer container)
-        : base("feature", "Container feature-related commands", container)
+    public FeatureSubSubCommand()
+        : base("feature", "Container feature-related commands")
     {
-        Subcommands.Add(new ApplyFeaturesCommand(container));
-        Subcommands.Add(new UnapplyFeaturesCommand(container));
-        Subcommands.Add(new CheckFeaturesCommand(container));
+        Subcommands.Add(new AddFeatureCommand());
+        Subcommands.Add(new RemoveFeatureCommand());
+        //Subcommands.Add(new CheckFeaturesCommand());
     }
 }

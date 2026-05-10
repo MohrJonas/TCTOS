@@ -4,9 +4,10 @@ using TCTOS.Features.Abstractions;
 
 namespace TCTOS.Features.Pipewire;
 
+// ReSharper disable once UnusedType.Global
 public sealed class PipewireFeature : IFeature
 {
-    public const string DeviceName = "pipewire";
+    private const string DeviceName = "pipewire";
 
     public Task<Result<DescribedValue<bool>>> IsApplicable(string containerName, FeatureContext featureContext) =>
         ResultStatics.RunCatchingAsync(() =>

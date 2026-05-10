@@ -1,55 +1,65 @@
 using System.CommandLine;
-using TCTOS.Abstractions;
+using System.Diagnostics;
+using TCTOS.Abstractions.Data.Messages;
+using TCTOS.Client.Common;
 
 namespace TCTOS.Console.Commands.Container.Provision;
 
-public sealed class EditContainerProvisionCommand(DiContainer container)
-    : CommandBase("edit", "Edit the container's provision file", container,
+public sealed class EditContainerProvisionCommand()
+    : CommandBase("edit", "Edit the container's provision file",
         arguments: [SharedArguments.ContainerNameArgument])
 {
-    protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
+    protected override async Task RunAsync(ParseResult parseResult, CancellationToken token)
     {
         var containerName = parseResult.GetRequiredValue(SharedArguments.ContainerNameArgument);
 
-        var tempFile = Path.GetTempFileName();
-        var fileSystem = container.Get<IFileSystem>();
-
-        await File.WriteAllTextAsync(
-            tempFile,
-            (await fileSystem.GetProvisioningFileContentAsync(containerName)).GetOrThrow(),
-            token
-        );
-
-        var envProvider = container.Get<IEnvironmentVariableProvider>();
+        var socketPath = parseResult.GetRequiredValue(SharedOptions.SocketPathOption);
         
-        var editorCommand = envProvider.HasVariable("EDITOR") 
-            ? envProvider.GetVariableValue("EDITOR") 
-            : null;
+        var writer = new UnixSocketWriter(socketPath);
+
+        var fileContentsResponse = await writer.WriteAsync<string>(new GetProvisionContentSocketMessage
+        {
+            ContainerName = containerName
+        });
+        
+        fileContentsResponse.ExitOnError();
+        
+        var tempFile = Path.GetTempFileName();
+
+        await File.WriteAllTextAsync(tempFile, fileContentsResponse.Data, token);
+        
+        // Lets use vi as a relatively safe fallback
+        var editorCommand = Environment.GetEnvironmentVariable("EDITOR") ?? "vi";
 
         string[]? editorArgs = null;
         
-        if (editorCommand != null)
+        // If the defined editor command contains arguments, we have to split them off and pass them into args
+        // e.g. --wait when using VSCode
+        if (editorCommand.Contains(' '))
         {
-            if (editorCommand.Contains(' '))
-            {
-                var commandParts = editorCommand.Split(' ', StringSplitOptions.TrimEntries);
-                editorCommand = commandParts[0];
-                editorArgs = commandParts[1..];
-            }
+            var commandParts = editorCommand.Split(' ', StringSplitOptions.TrimEntries);
+            editorCommand = commandParts[0];
+            editorArgs = commandParts[1..];
         }
 
-        editorCommand ??= "vi";
-        editorArgs ??= [];
-        
-        var runner = container.Get<ICommandRunner>();
-        var result = await runner.RunCommandInteractively(editorCommand, [..editorArgs, tempFile]);
-        result.ThrowIfFailed();
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = editorCommand,
+            Arguments = string.Join(" ", [..editorArgs ?? [], tempFile])
+        };
 
-        (await fileSystem.SetProvisioningFileContentAsync(
-            containerName,
-            await File.ReadAllTextAsync(tempFile, token)
-        )).ThrowIfFailed();
-
-        File.Delete(tempFile);
+        try
+        {
+            var process = Process.Start(startInfo);
+            await process?.WaitForExitAsync(token)!;
+        }
+        catch (Exception e)
+        {
+            e.Message.ExitWithError();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 }

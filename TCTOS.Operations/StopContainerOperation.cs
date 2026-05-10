@@ -33,7 +33,7 @@ public static class StopContainerOperation
         {
             var stopResponse = await incusClient.StopContainerAsync(containerName);
             stopResponse.ThrowOnError();
-            await incusClient.WaitForOperationAsync(stopResponse.Operation!);   
+            (await incusClient.WaitForOperationAsync(stopResponse.Operation!)).ThrowOnError();   
         }
 
         var key = $"{containerName}-enabled-features";

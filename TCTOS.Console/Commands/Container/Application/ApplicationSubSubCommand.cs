@@ -2,10 +2,10 @@ namespace TCTOS.Console.Commands.Container.Application;
 
 public sealed class ApplicationSubSubCommand : CommandBase
 {
-    public ApplicationSubSubCommand(DiContainer container) : base("application",
-        "container application-related commands", container)
+    public ApplicationSubSubCommand() : base("application",
+        "container application-related commands")
     {
-        Subcommands.Add(new ApplicationListCommand(container));
-        Subcommands.Add(new ApplicationExportCommand(container));
+        Subcommands.Add(new ApplicationListCommand());
+        Subcommands.Add(new ApplicationExportCommand());
     }
 }

@@ -1,29 +1,31 @@
 using System.CommandLine;
-using TCTOS.Abstractions;
+using TCTOS.Abstractions.Data.Messages;
+using TCTOS.Client.Common;
 
 namespace TCTOS.Console.Commands.Container.Provision;
 
-public sealed class ProvisionContainerCommand(DiContainer container)
-    : CommandBase("run", "Provision the container via its configuration", container,
+public sealed class ProvisionContainerCommand()
+    : CommandBase("run", "Provision the container via its configuration",
         arguments: [SharedArguments.ContainerNameArgument])
 {
-    protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
+    protected override async Task RunAsync(ParseResult parseResult, CancellationToken token)
     {
+        var plain = parseResult.GetRequiredValue(SharedOptions.PlainOption);
         var containerName = parseResult.GetRequiredValue(SharedArguments.ContainerNameArgument);
-
-        var provisioner = container.Get<IContainerProvisioner>();
-        var fileSystem = container.Get<IFileSystem>();
-        var userInformationCollector = container.Get<IUserInformationCollector>();
-
-        var provisionFileContent = (await fileSystem.GetProvisioningFileContentAsync(containerName)).GetOrThrow()!;
-
-        Dictionary<string, string> variables = new()
+        
+        var socketPath = parseResult.GetRequiredValue(SharedOptions.SocketPathOption);
+        
+        var writer = new UnixSocketWriter(socketPath);
+        
+        var task = writer.WriteAsync<Abstractions.Data.Container[]>(new ProvisionSocketMessage
         {
-            { "TCTOS_GID", userInformationCollector.GetGid().ToString() },
-            { "TCTOS_UID", userInformationCollector.GetUid().ToString() },
-            { "ansible_python_interpreter", "auto_silent" }
-        };
+            ContainerName = containerName
+        });
 
-        (await provisioner.ProvisionContainer(containerName, provisionFileContent, variables)).ThrowIfFailed();
+        var response = plain
+            ? await task
+            : await Spectre.Console.SpinnerExtensions.Spinner(task);
+        
+        response.ExitOnError();
     }
 }

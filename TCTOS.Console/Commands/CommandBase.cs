@@ -4,7 +4,7 @@ namespace TCTOS.Console.Commands;
 
 public abstract class CommandBase : Command
 {
-    protected CommandBase(string name, string description, DiContainer container, string[]? aliases = null,
+    protected CommandBase(string name, string description, string[]? aliases = null,
         Option[]? options = null, Argument[]? arguments = null)
         : base(name, description)
     {
@@ -14,10 +14,10 @@ public abstract class CommandBase : Command
             Options.Add(option);
         foreach (var argument in arguments ?? [])
             Arguments.Add(argument);
-        SetAction(async (result, ct) => await RunAsync(result, container, ct));
+        SetAction(async (result, ct) => await RunAsync(result, ct));
     }
 
-    protected virtual Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
+    protected virtual Task RunAsync(ParseResult parseResult, CancellationToken token)
     {
         return Task.CompletedTask;
     }

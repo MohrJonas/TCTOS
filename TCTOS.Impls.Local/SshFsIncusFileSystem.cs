@@ -1,10 +1,9 @@
-using System.Text.RegularExpressions;
 using TCTOS.Abstractions;
 using TCTOS.Common;
 
 namespace TCTOS.Impls.Local;
 
-public sealed class SshFsIncusFileSystem(IBackgroundCommandRunner backgroundCommandRunner) : IIncusFileSystem
+public sealed class SshFsIncusFileSystem(IBackgroundCommandRunner backgroundCommandRunner, string persistentRootPath) : IIncusFileSystem
 {
     private object? _backgroundJobIdentifier;
     private string? _fsRoot;
@@ -13,12 +12,14 @@ public sealed class SshFsIncusFileSystem(IBackgroundCommandRunner backgroundComm
     {
         return RunCatchingAsync(async () =>
         {
-            var tempPath = Directory.CreateTempSubdirectory().FullName;
+            var mountPath = PathHelper.GetPerContainerMountPath(persistentRootPath, containerName);
+            if(!Directory.Exists(mountPath))
+                IoHelper.CreateDirectory(mountPath, IoHelper.DefaultDirectoryMode);
             _backgroundJobIdentifier = (await backgroundCommandRunner.RunCommandInBackground(
                 "incus",
-                ["file", "mount", $"{containerName}/", tempPath]
+                ["file", "mount", $"{containerName}/", mountPath]
             )).GetOrThrow();
-            _fsRoot = tempPath;
+            _fsRoot = mountPath;
             await Task.Delay(500);
         });
     }

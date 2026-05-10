@@ -1,6 +1,6 @@
 using System.CommandLine;
-using TCTOS.Abstractions;
-using TCTOS.Operations;
+using TCTOS.Abstractions.Data.Messages;
+using TCTOS.Client.Common;
 
 namespace TCTOS.Console.Commands.Container.Application;
 
@@ -12,24 +12,25 @@ public static class ApplicationExportCommandArguments
     };
 }
 
-public sealed class ApplicationExportCommand(DiContainer container)
-    : CommandBase("export", "Export the .desktop onto the host system", container,
+public sealed class ApplicationExportCommand()
+    : CommandBase("export", "Export the .desktop onto the host system",
         arguments: [SharedArguments.ContainerNameArgument, ApplicationExportCommandArguments.DesktopFilePath])
 {
-    protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
+    protected override async Task RunAsync(ParseResult parseResult, CancellationToken token)
     {
         var containerName = parseResult.GetRequiredValue(SharedArguments.ContainerNameArgument);
         var desktopFilePath = parseResult.GetRequiredValue(ApplicationExportCommandArguments.DesktopFilePath);
         
-        var incusFileSystem = container.Get<IIncusFileSystem>();
-        var computer = container.Get<IComputer>();
+        var socketPath = parseResult.GetRequiredValue(SharedOptions.SocketPathOption);
+        
+        var writer = new UnixSocketWriter(socketPath);
 
-        (await ExportApplicationOperation.ExportApplicationAsync(containerName, desktopFilePath, computer,
-            incusFileSystem)).ThrowIfFailed();
-    }
-
-    private static string BuildExecute(string containerName, uint uid, uint gid, string originalExecutable)
-    {
-        return $"incus exec {containerName} -- /sbin/simlog --uid {uid} --gid {gid} {originalExecutable}";
+        var response = await writer.WriteAsync<string[]>(new ExportApplicationSocketMessage
+        {
+            ContainerName = containerName,
+            ApplicationPath = desktopFilePath
+        });
+        
+        response.ExitOnError();   
     }
 }

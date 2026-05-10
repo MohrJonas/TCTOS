@@ -4,6 +4,7 @@ using TCTOS.Features.Abstractions;
 
 namespace TCTOS.Features.Wayland;
 
+// ReSharper disable once UnusedType.Global
 public sealed class WaylandFeature : IFeature
 {
     private const string DeviceName = "wayland";

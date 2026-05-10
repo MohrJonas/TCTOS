@@ -19,6 +19,8 @@ public interface IIncusClient
     public Task<ResponseBase> RunCommand(
         string containerName,
         string command,
+        uint uid,
+        uint gid,
         string[]? args = null,
         Dictionary<string, object>? env = null,
         string? cwd = null

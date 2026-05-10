@@ -1,39 +1,57 @@
 using System.CommandLine;
-using TCTOS.Abstractions;
+using System.Diagnostics;
+using TCTOS.Abstractions.Data.Messages;
+using TCTOS.Client.Common;
 
 namespace TCTOS.Console.Commands.Container.Provision;
 
-public sealed class ShowContainerProvisionCommand(DiContainer container)
-    : CommandBase("show", "Show the container's provision file", container,
+public sealed class ShowContainerProvisionCommand()
+    : CommandBase("show", "Show the container's provision file",
         arguments: [SharedArguments.ContainerNameArgument])
 {
-    protected override async Task RunAsync(ParseResult parseResult, DiContainer container, CancellationToken token)
+    protected override async Task RunAsync(ParseResult parseResult, CancellationToken token)
     {
+        var plain = parseResult.GetRequiredValue(SharedOptions.PlainOption);
         var containerName = parseResult.GetRequiredValue(SharedArguments.ContainerNameArgument);
 
-        var runner = container.Get<ICommandRunner>();
+        var socketPath = parseResult.GetRequiredValue(SharedOptions.SocketPathOption);
+        
+        var writer = new UnixSocketWriter(socketPath);
 
-        var tempFile = Path.GetTempFileName();
-        var fileSystem = container.Get<IFileSystem>();
-
-        var contents = (await fileSystem.GetProvisioningFileContentAsync(containerName)).GetOrThrow();
-
-        if (parseResult.RootCommandResult.GetRequiredValue(SharedOptions.PlainOption))
+        var response = await writer.WriteAsync<string>(new GetProvisionContentSocketMessage
         {
-            System.Console.WriteLine(contents);
+            ContainerName = containerName
+        });
+        
+        response.ExitOnError();
+
+        if (plain)
+        {
+            System.Console.Write(response.Data!);
             return;
         }
+        
+        var tempFile = Path.GetTempFileName();
+        await File.WriteAllTextAsync(tempFile, response.Data, token);
 
-        await File.WriteAllTextAsync(tempFile, contents, token);
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "bat",
+            Arguments = string.Join(" ", ["-f", "-s", "--file-name", containerName, "-l", "yaml", tempFile])
+        };
 
-        var result = await runner.RunCommandInteractively(
-            "bat",
-            // Here we hard-code yaml syntax highlighting, even though theoretically speaking the file could be any language
-            ["-f", "-s", "--file-name", containerName, "-l", "yaml", tempFile]
-        );
-
-        result.ThrowIfFailed();
-
-        File.Delete(tempFile);
+        try
+        {
+            var process = Process.Start(startInfo);
+            await process?.WaitForExitAsync(token)!;
+        }
+        catch (Exception e)
+        {
+            e.Message.ExitWithError();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 }

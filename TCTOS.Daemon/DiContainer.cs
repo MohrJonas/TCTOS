@@ -1,4 +1,4 @@
-namespace TCTOS.Console;
+namespace TCTOS.Daemon;
 
 public sealed class DiContainer
 {
@@ -6,7 +6,7 @@ public sealed class DiContainer
 
     public TData Get<TData>()
     {
-        return (TData)(_backingDict[typeof(TData)]).Get();
+        return (TData)_backingDict[typeof(TData)].Get();
     }
 
     public DiContainer AddLazy<TData>(Func<TData> lazyFactory) where TData : notnull

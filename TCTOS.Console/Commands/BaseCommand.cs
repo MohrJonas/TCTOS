@@ -6,14 +6,15 @@ namespace TCTOS.Console.Commands;
 
 public sealed class BaseCommand : RootCommand
 {
-    public BaseCommand(DiContainer container) : base("TheConTainerOS")
+    public BaseCommand() : base("TheContainerControlCenter")
     {
         Options.Add(SharedOptions.PlainOption);
         Options.Add(SharedOptions.VerboseOption);
-        Subcommands.Add(new ContainerSubCommand(container));
-        Subcommands.Add(new EventsCommand(container));
-        Subcommands.Add(new FeaturesCommand(container));
-        Subcommands.Add(new LaunchCommand(container));
-        Subcommands.Add(new InitializeOsCommand(container));
+        Options.Add(SharedOptions.SocketPathOption);
+        Subcommands.Add(new ContainerSubCommand());
+        //Subcommands.Add(new EventsCommand(container));
+        Subcommands.Add(new FeaturesCommand());
+        Subcommands.Add(new LaunchCommand());
+        //Subcommands.Add(new InitializeOsCommand(container));
     }
 }

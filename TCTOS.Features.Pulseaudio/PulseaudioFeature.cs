@@ -4,6 +4,7 @@ using TCTOS.Features.Abstractions;
 
 namespace TCTOS.Features.Pulseaudio;
 
+// ReSharper disable once UnusedType.Global
 public sealed class PulseaudioFeature : IFeature
 {
     private const string DeviceName = "pulse";

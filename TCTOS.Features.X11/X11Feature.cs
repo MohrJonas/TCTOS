@@ -4,6 +4,7 @@ using TCTOS.Features.Abstractions;
 
 namespace TCTOS.Features.X11;
 
+// ReSharper disable once UnusedType.Global
 public sealed class X11Feature : IFeature
 {
     private const string DeviceName = "x11";
@@ -29,8 +30,11 @@ public sealed class X11Feature : IFeature
         {
             var displayId = Random.Shared.Next(0, short.MaxValue);
             var backgroundJobIdentifier = (await featureContext.BackgroundCommandRunner.RunCommandInBackground(
-                "xwayland-satellite",
-                [$":{displayId}", "-ac", "-nolisten", "tcp", "-extension", "MIT-SHM", "+extension", "SECURITY"]
+                "systemd-run",
+                [
+                    "--user", "--machine", "1000@", "/run/current-system/sw/bin/xwayland-satellite", $":{displayId}", "-ac", "-nolisten", "tcp",
+                    "-extension", "MIT-SHM", "+extension", "SECURITY"
+                ]
             )).GetOrThrow();
             await Task.Delay(500);
             featureContext.NonPersistentStorage.PutValue(GetBackgroundJobKey(containerName), backgroundJobIdentifier);
@@ -47,6 +51,7 @@ public sealed class X11Feature : IFeature
     public Task<Result> Unapply(string containerName, FeatureContext featureContext) =>
         ResultStatics.RunCatchingAsync(async () =>
         {
-            (await IncusHelper.RemoveDeviceAsync(featureContext.IncusClient, containerName, DeviceName)).ThrowIfFailed();
+            (await IncusHelper.RemoveDeviceAsync(featureContext.IncusClient, containerName, DeviceName))
+                .ThrowIfFailed();
         });
 }

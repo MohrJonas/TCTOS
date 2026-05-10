@@ -13,7 +13,7 @@ public static class InitializeOsOperation
         IFileSystem fileSystem
     ) => RunCatchingAsync(async () =>
     {
-        var configuration = new TctOsConfiguration()
+        var configuration = new TctOsConfiguration
         {
             PoolName = poolName,
             BridgeName = bridgeName,

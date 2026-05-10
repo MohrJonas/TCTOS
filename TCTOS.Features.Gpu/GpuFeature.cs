@@ -4,6 +4,7 @@ using TCTOS.Features.Abstractions;
 
 namespace TCTOS.Features.Gpu;
 
+// ReSharper disable once UnusedType.Global
 public sealed class GpuFeature : IFeature
 {
     private const string DeviceName = "gpu";

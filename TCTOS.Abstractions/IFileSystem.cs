@@ -13,4 +13,5 @@ public interface IFileSystem
 
     public Task<Result<TctOsConfiguration?>> GetConfigurationAsync();
     public Task<Result> SetConfigurationAsync(TctOsConfiguration configuration);
+    Task<Result> RemoveContainerFiles(string containerName);
 }

@@ -4,33 +4,77 @@ using TCTOS.Common;
 
 namespace TCTOS.Impls.Local;
 
-public sealed class LocalComputerImpl : IComputer
+public sealed class LocalComputerImpl(string persistentRootPath) : IComputer
 {
     public Task<Result> AddDesktopFileAsync(string name, DesktopFile desktopFile) => RunCatchingAsync(async () =>
     {
-        var parentDirectory =
-            Path.Combine(Environment.GetEnvironmentVariable("HOME")!, ".tctos", "share", "applications");
-        Directory.CreateDirectory(parentDirectory);
-        var filePath = Path.Combine(parentDirectory, name);
-        await File.WriteAllTextAsync(filePath, desktopFile.SerializeToString());
+        var desktopFilePath = PathHelper.GetDesktopFilePath(persistentRootPath, name);
+        var parentDirectory = Directory.GetParent(desktopFilePath);
+        if(parentDirectory != null)
+            IoHelper.CreateDirectory(parentDirectory.FullName, IoHelper.DefaultDirectoryMode);
+        await IoHelper.WriteTextFileAsync(desktopFilePath, desktopFile.SerializeToString(), IoHelper.DefaultFileMode);
     });
 
-    public Task<Result<string>> AddIconFileAsync(string name, byte[] imageBytes) => RunCatchingAsync(async () =>
+    public Task<Result<string>> AddIconFileAsync(string name, string containerName, byte[] imageBytes) => RunCatchingAsync(async () =>
     {
-        var iconDirectory = Path.Combine(Environment.GetEnvironmentVariable("HOME")!, ".tctos", "icons");
-        Directory.CreateDirectory(iconDirectory);
-        var iconPath = Path.Combine(iconDirectory, name);
-        await File.WriteAllBytesAsync(iconPath, imageBytes);
-        return iconPath;
+        var iconFilePath = PathHelper.GetIconFilePath(persistentRootPath, containerName, name);
+        var parentDirectory = Directory.GetParent(iconFilePath);
+        if(parentDirectory != null)
+            IoHelper.CreateDirectory(parentDirectory.FullName, IoHelper.DefaultDirectoryMode);
+        await IoHelper.WriteBinaryFileAsync(iconFilePath, imageBytes, IoHelper.DefaultFileMode);
+        return iconFilePath;
     });
 
-    public Task<Result> RemoveDesktopFileAsync(string name)
+    public Task<Result> RemoveDesktopFileAsync(string name) => RunCatchingAsync(() =>
     {
-        throw new NotImplementedException();
-    }
+        try
+        {
+            var desktopFilePath = PathHelper.GetDesktopFilePath(persistentRootPath, name);
+            File.Delete(desktopFilePath);
+            return Task.CompletedTask;
+        }
+        catch (Exception exception)
+        {
+            return Task.FromException(exception);
+        }
+    });
 
-    public Task<Result> RemoveIconFileAsync(string name)
+    public Task<Result> RemoveIconFileAsync(string name, string containerName) => RunCatchingAsync(() =>
     {
-        throw new NotImplementedException();
-    }
+        try
+        {
+            var iconFilePath = PathHelper.GetIconFilePath(persistentRootPath, containerName, name);
+            File.Delete(iconFilePath);
+            return Task.CompletedTask;
+        }
+        catch (Exception exception)
+        {
+            return Task.FromException(exception);
+        }
+    });
+
+    public Task<Result> RemoveContainerFiles(string containerName) => RunCatchingAsync(() =>
+    {
+        try
+        {
+            var iconDirectoryPath = PathHelper.GetIconFileRootPath(persistentRootPath, containerName);
+            if(Directory.Exists(iconDirectoryPath))
+                Directory.Delete(iconDirectoryPath, true);
+            return Task.CompletedTask;
+        }
+        catch (Exception exception)
+        {
+            return Task.FromException(exception);
+        }
+    });
+
+    public Task<Result<string[]>> ListDesktopFilesAsync(string containerName) => RunCatchingAsync(async () =>
+    {
+        var desktopFilesDirectory = PathHelper.GetDesktopFilesRootPath(containerName);
+        if (!Directory.Exists(desktopFilesDirectory))
+            return [];
+        return Directory.GetFiles(desktopFilesDirectory)
+            .Where(p => Path.GetFileNameWithoutExtension(p).StartsWith(containerName))
+            .ToArray();
+    });
 }

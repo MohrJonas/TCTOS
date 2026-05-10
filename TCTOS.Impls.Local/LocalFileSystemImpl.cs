@@ -41,7 +41,7 @@ public sealed class LocalFileSystemImpl(ILogger<LocalFileSystemImpl> logger, str
                 var path = PathHelper.GetPerContainerProvisioningFilePath(persistentRootPath, containerName);
                 logger.LogDebug("Path is {path}", path);
                 CreateParentDirectoriesForFile(path);
-                await File.WriteAllTextAsync(path, fileContent);
+                await IoHelper.WriteTextFileAsync(path, fileContent, IoHelper.DefaultFileMode);
             }
         });
     }
@@ -117,9 +117,19 @@ public sealed class LocalFileSystemImpl(ILogger<LocalFileSystemImpl> logger, str
         });
     }
 
+    public Task<Result> RemoveContainerFiles(string containerName) => RunCatchingAsync(async () =>
+    {
+        var directoryPath = PathHelper.GetPerContainerRootPath(containerName);
+        if(Directory.Exists(directoryPath))
+            Directory.Delete(directoryPath, true);
+    });
+
     private static void CreateParentDirectoriesForFile(string filePath)
     {
-        Directory.CreateDirectory(Directory.GetParent(filePath)!.FullName);
+        var parentDirectory = Directory.GetParent(filePath);
+        if(parentDirectory == null)
+            return;
+        IoHelper.CreateDirectory(parentDirectory.FullName, IoHelper.DefaultDirectoryMode);
     }
 
     private static async Task<TData> ReadAndParse<TData>(string path)
@@ -131,6 +141,6 @@ public sealed class LocalFileSystemImpl(ILogger<LocalFileSystemImpl> logger, str
     private static async Task UnparseAndWrite<TData>(string path, TData data)
     {
         var text = JsonSerializer.Serialize(data);
-        await File.WriteAllTextAsync(path, text);
+        await IoHelper.WriteTextFileAsync(path, text, IoHelper.DefaultFileMode);
     }
 }

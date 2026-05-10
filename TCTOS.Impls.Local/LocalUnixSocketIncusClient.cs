@@ -28,8 +28,7 @@ public sealed class LocalUnixSocketIncusClient : IIncusClient
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
-
-
+    
     public Task<ResponseBase> StartContainerAsync(string containerName)
     {
         return DoHttpRequest(
@@ -122,7 +121,7 @@ public sealed class LocalUnixSocketIncusClient : IIncusClient
         return DoHttpRequest($"{operationUrl}/wait");
     }
 
-    public Task<ResponseBase> RunCommand(string containerName, string command, string[]? args = null,
+    public Task<ResponseBase> RunCommand(string containerName, string command, uint uid, uint gid, string[]? args = null,
         Dictionary<string, object>? env = null, string? cwd = null)
     {
         return DoHttpRequest($"/1.0/instances/{containerName}/exec", HttpMethod.Post, MediaTypeNames.Application.Json,
@@ -131,13 +130,13 @@ public sealed class LocalUnixSocketIncusClient : IIncusClient
                 Command = [command, ..(args ?? [])],
                 Environment = env?.Select(pair => KeyValuePair.Create(pair.Key, pair.Value.ToString()!)).ToDictionary(),
                 Cwd = "/",
-                Group = 0,
-                User = 0
+                Group = (int?)uid,
+                User = (int?)gid
             });
     }
 
     public Task<ResponseBase> DeleteContainerAsync(string containerName)
-        => DoHttpRequest($"/1.0/instance/{containerName}", HttpMethod.Delete);
+        => DoHttpRequest($"/1.0/instances/{containerName}", HttpMethod.Delete);
 
     private Uri CreateUriFromPath(string path)
     {
