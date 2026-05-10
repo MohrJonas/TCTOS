@@ -4,6 +4,9 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AssemblyName>tccc</AssemblyName>
+        <Authors>Jonas Mohr</Authors>
+        <Description>Management CLI for The ConTainer Operating System</Description>
     </PropertyGroup>
 
     <ItemGroup>
