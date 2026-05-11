@@ -19,6 +19,6 @@ public static class SharedOptions
     public static readonly Option<string> SocketPathOption = new("--socket")
     {
         Description = "Path to the tctos control socket",
-        DefaultValueFactory = _ => "/tmp/tctos.socket"
+        DefaultValueFactory = _ => "/var/lib/tctos/tctos.socket"
     };
 }
