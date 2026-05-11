@@ -28,10 +28,11 @@ public sealed class RemoveFeatureHandler(DiContainer container) : IMessageHandle
             return new SocketResponse(
                 error: $"Configuration for container {removeFeatureMessage.ContainerName} not found");
 
-        containerConfiguration.FeatureNames = [..containerConfiguration.FeatureNames, removeFeatureMessage.FeatureName];
-
         if (!containerConfiguration.FeatureNames.Contains(removeFeatureMessage.FeatureName))
             return new SocketResponse(error: $"Feature \"{removeFeatureMessage.FeatureName}\" is not enabled");
+        
+        containerConfiguration.FeatureNames = containerConfiguration.FeatureNames
+            .Where(n => n != removeFeatureMessage.FeatureName).ToArray();
         
         var setConfigurationResult =
             await fileSystem.SetContainerConfigurationAsync(removeFeatureMessage.ContainerName, containerConfiguration);
