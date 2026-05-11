@@ -55,6 +55,8 @@ public static class ExportApplicationOperation
                     else
                         lines.Add(line);
                 }
+                else if (line is KeyValueDesktopFileLine nameFileLine && nameFileLine.Key.Contains("Name"))
+                    lines.Add(nameFileLine with { Value = $"({containerName})-{nameFileLine.Value}" });
                 else
                     lines.Add(line);
             }

@@ -18,5 +18,6 @@ public sealed class ContainerSubCommand : Command
         Subcommands.Add(new CreateContainerCommand());
         Subcommands.Add(new ApplicationSubSubCommand());
         Subcommands.Add(new DeleteContainerCommand());
+        Subcommands.Add(new ContainerShellCommand());
     }
 }

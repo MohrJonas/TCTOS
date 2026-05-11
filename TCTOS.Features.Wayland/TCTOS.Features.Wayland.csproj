@@ -10,4 +10,8 @@
       <ProjectReference Include="..\TCTOS.Features.Abstractions\TCTOS.Features.Abstractions.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="descriptor.json" CopyToPublishDirectory="PreserveNewest"/>
+    </ItemGroup>
+    
 </Project>

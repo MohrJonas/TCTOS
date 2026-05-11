@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Console;
 using TCTOS.Abstractions;
 using TCTOS.Abstractions.Data;
 using TCTOS.Common;
+using TCTOS.Features.Abstractions;
 using TCTOS.Impls.Local;
 
 namespace TCTOS.Daemon;
@@ -12,6 +13,9 @@ internal static class Program
 {
     private static async Task Main()
     {
+        Console.WriteLine("Base dir: " + AppContext.BaseDirectory);
+        Console.WriteLine("B.dll location: " + typeof(FeatureContext).Assembly.Location);
+        
         var cancellationTokenSource = new CancellationTokenSource();
         PosixSignalRegistration.Create(PosixSignal.SIGINT, ctx =>
         {
@@ -24,6 +28,10 @@ internal static class Program
         var persistentDataRootPath = variableProvider.HasVariable("TCTOS_DATA_ROOT")
             ? variableProvider.GetVariableValue("TCTOS_DATA_ROOT")
             : FixedPaths.DefaultPersistentRootPath;
+
+        var socketPath = variableProvider.HasVariable("TCTOS_SOCKET_PATH")
+            ? variableProvider.GetVariableValue("TCTOS_SOCKET_PATH")
+            : FixedPaths.DefaultSocketPath;
 
         var logLevel = variableProvider.HasVariable("TCTOS_LOGLEVEL")
             ? Enum.Parse<LogLevel>(variableProvider.GetVariableValue("TCTOS_LOGLEVEL"), true)
@@ -69,7 +77,9 @@ internal static class Program
             .AddLazy(IComputer () => new LocalComputerImpl(persistentDataRootPath));
 
         using var socketListener =
-            new LocalUnixSocketListener("/tmp/tctos.socket", loggerFactory.CreateLogger<LocalUnixSocketListener>());
+            new LocalUnixSocketListener(socketPath, loggerFactory.CreateLogger<LocalUnixSocketListener>());
+        File.SetUnixFileMode(socketPath,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
 
         socketListener.OnMessage += message =>
         {
@@ -80,6 +90,8 @@ internal static class Program
             return task.Result;
         };
         await socketListener.ListenAsync(cancellationTokenSource.Token);
+
+        await ShutdownContainers(container);
     }
 
     private static async Task<object?> HandleMessage(SocketMessage message, DiContainer container, ILogger logger)
@@ -90,11 +102,42 @@ internal static class Program
         if (messageHandler == null)
         {
             logger.LogWarning("No handler for message type {type} found", message.MessageType);
-            return null;   
+            return null;
         }
+
         logger.LogTrace("Running message handler");
         var messageResult = await messageHandler.HandleMessage(message);
         logger.LogTrace("Message handler result is {result}", messageResult);
         return messageResult.HasFailed ? null : messageResult.GetOrThrow();
+    }
+
+    private static async Task ShutdownContainers(DiContainer container)
+    {
+        var logger = container.Get<ILogger>();
+        var client = container.Get<IIncusClient>();
+        var instancesResult = await client.GetContainersAsync();
+        if (instancesResult.IsError())
+        {
+            logger.LogError("Error getting instances: {error}", instancesResult.Error);
+            return;
+        }
+
+        var instances = instancesResult.Metadata;
+        foreach (var instance in instances)
+        {
+            logger.LogInformation("Stopping container: {name}", instance.Name);
+            var stopResult = await client.StopContainerAsync(instance.Name);
+            if (stopResult.IsError())
+            {
+                logger.LogError("Error stopping container: {error}", stopResult.Error);
+                return;
+            }
+
+            var waitResult = await client.WaitForOperationAsync(stopResult.Operation!);
+            if (!waitResult.IsError()) continue;
+            logger.LogError("Error waiting for container stop: {error}", waitResult.Error);
+            return;
+        }
+        logger.LogInformation("Shutdown completed");
     }
 }

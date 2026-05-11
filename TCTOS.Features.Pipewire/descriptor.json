@@ -1,0 +1,6 @@
+{
+    "name": "pipewire",
+    "description": "Pass the host's pipewire socket into the container",
+    "conflicts": [],
+    "depends": []
+}
