@@ -24,7 +24,7 @@ public sealed class ListExportableApplicationsHandler(DiContainer container) : I
                 return new SocketResponse(error: preparationResult.Exception!.Message);
             
             List<string> exportableApps = [];
-            string[] searchPaths = ["/usr/share/applications"];
+            string[] searchPaths = ["/usr/share/applications", "/var/lib/flatpak/exports/share/applications"];
 
             foreach (var searchPath in searchPaths)
             {
