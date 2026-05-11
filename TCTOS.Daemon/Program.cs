@@ -78,8 +78,6 @@ internal static class Program
 
         using var socketListener =
             new LocalUnixSocketListener(socketPath, loggerFactory.CreateLogger<LocalUnixSocketListener>());
-        File.SetUnixFileMode(socketPath,
-            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
 
         socketListener.OnMessage += message =>
         {

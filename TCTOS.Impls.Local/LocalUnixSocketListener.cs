@@ -23,6 +23,8 @@ public sealed class LocalUnixSocketListener(string socketPath, ILogger<LocalUnix
         _socket.Bind(new UnixDomainSocketEndPoint(socketPath));
         logger.LogTrace("Placing socket in listening state");
         _socket.Listen();
+        File.SetUnixFileMode(socketPath,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
         try
         {
             while (!cancellationToken.IsCancellationRequested)
