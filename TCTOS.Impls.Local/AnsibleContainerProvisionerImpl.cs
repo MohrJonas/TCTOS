@@ -54,7 +54,7 @@ public sealed class AnsibleContainerProvisionerImpl : IContainerProvisioner
                  hosts: all
                  tasks:
                    - name: Ensure python3 is installed for further Ansible operations
-                     raw: |
+                     ansible.builtin.raw: |
                        if ! command -v python3 >/dev/null 2>&1; then
                          . /etc/os-release
                          case "$ID" in
@@ -90,7 +90,7 @@ public sealed class AnsibleContainerProvisionerImpl : IContainerProvisioner
                      when: gid_lookup.stdout != ""
                  
                    - name: Remove group
-                     group:
+                     ansible.builtin.group:
                        name: "{{ gid_owner }}"
                        state: absent
                      when:
@@ -98,7 +98,7 @@ public sealed class AnsibleContainerProvisionerImpl : IContainerProvisioner
                        - gid_owner != "users"
                  
                    - name: Create new group
-                     group:
+                     ansible.builtin.group:
                        name: "users"
                        gid: "{{ TCTOS_GID }}"
                        state: present
@@ -115,7 +115,7 @@ public sealed class AnsibleContainerProvisionerImpl : IContainerProvisioner
                      when: uid_lookup.stdout != ""
                  
                    - name: Remove user
-                     user:
+                     ansible.builtin.user:
                        name: "{{ uid_owner }}"
                        state: absent
                        remove: true
@@ -124,12 +124,20 @@ public sealed class AnsibleContainerProvisionerImpl : IContainerProvisioner
                        - uid_owner != "user"
                  
                    - name: Create new user
-                     user:
+                     ansible.builtin.user:
                        name: "user"
                        uid: "{{ TCTOS_UID }}"
                        group: "users"
                        state: present
                        create_home: true
+                       
+                   - name: Install simlog
+                     ansible.builtin.get_url:
+                       url: "https://raw.githubusercontent.com/MohrJonas/Simlog/refs/heads/master/simlog"
+                       dest: "/sbin/simlog"
+                       mode: "0544"
+                       owner: root
+                       group: root
                """;
     }
 }

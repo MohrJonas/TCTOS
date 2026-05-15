@@ -22,7 +22,7 @@ public sealed class DllFeatureProvider(string persistentRootPath) : IFeatureProv
 
     public Task<Result<string>> GetFeatureScriptTextAsync(string featureName) => RunCatchingAsync(async () =>
         Convert.ToBase64String(
-            await File.ReadAllBytesAsync(PathHelper.GetFeatureExecutablePath(persistentRootPath, featureName))
+            await File.ReadAllBytesAsync(PathHelper.GetFeatureExecutablePath(persistentRootPath, Path.ChangeExtension(featureName, "dll")))
         )
     );
 }
