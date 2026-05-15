@@ -28,7 +28,7 @@ public sealed class EditContainerProvisionCommand()
 
         await File.WriteAllTextAsync(tempFile, fileContentsResponse.Data, token);
         
-        // Lets use vi as a relatively safe fallback
+        // Let's use vi as a relatively safe fallback
         var editorCommand = Environment.GetEnvironmentVariable("EDITOR") ?? "vi";
 
         string[]? editorArgs = null;
@@ -52,6 +52,14 @@ public sealed class EditContainerProvisionCommand()
         {
             var process = Process.Start(startInfo);
             await process?.WaitForExitAsync(token)!;
+
+            var writeResponse = await writer.WriteAsync(new SetProvisionContentSocketMessage
+            {
+                ContainerName = containerName,
+                Content = await File.ReadAllTextAsync(tempFile, token)
+            });
+            
+            writeResponse.ExitOnError();
         }
         catch (Exception e)
         {
