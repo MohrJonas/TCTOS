@@ -32,8 +32,16 @@ public sealed class X11Feature : IFeature
             var backgroundJobIdentifier = (await featureContext.BackgroundCommandRunner.RunCommandInBackground(
                 "systemd-run",
                 [
-                    "--user", "--machine", "1000@", "/run/current-system/sw/bin/xwayland-satellite", $":{displayId}", "-ac", "-nolisten", "tcp",
-                    "-extension", "MIT-SHM", "+extension", "SECURITY"
+                    "--wait", 
+                    "--pipe",
+                    "--user", 
+                    "--machine", "1000@", 
+                    "xwayland-satellite", 
+                    $":{displayId}", 
+                    "-ac", 
+                    "-nolisten", "tcp",
+                    "-extension", "MIT-SHM", 
+                    "+extension", "SECURITY"
                 ]
             )).GetOrThrow();
             await Task.Delay(500);

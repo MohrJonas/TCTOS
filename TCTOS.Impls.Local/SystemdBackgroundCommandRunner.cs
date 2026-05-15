@@ -21,7 +21,6 @@ public sealed class SystemdBackgroundCommandRunner : IBackgroundCommandRunner
             var unitName = Guid.NewGuid().ToString();
             List<string> commandArgs =
             [
-                "--user",
                 "--unit",
                 unitName,
                 command
