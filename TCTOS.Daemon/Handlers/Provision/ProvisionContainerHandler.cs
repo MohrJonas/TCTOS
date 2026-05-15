@@ -19,7 +19,6 @@ public sealed class ProvisionContainerHandler(DiContainer container) : IMessageH
 
         var provisioner = container.Get<IContainerProvisioner>();
         var fileSystem = container.Get<IFileSystem>();
-        var userInformationCollector = container.Get<IUserInformationCollector>();
 
         logger.LogDebug("Getting provision file content");
         var provisionFileContentResult =
@@ -39,8 +38,8 @@ public sealed class ProvisionContainerHandler(DiContainer container) : IMessageH
 
         Dictionary<string, string> variables = new()
         {
-            { "TCTOS_GID", userInformationCollector.GetGid().ToString() },
-            { "TCTOS_UID", userInformationCollector.GetUid().ToString() },
+            { "TCTOS_GID", provisionMessage.Gid.ToString() },
+            { "TCTOS_UID", provisionMessage.Uid.ToString() },
             { "ansible_python_interpreter", "auto_silent" }
         };
 

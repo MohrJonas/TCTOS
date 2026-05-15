@@ -1,6 +1,7 @@
 using System.CommandLine;
 using TCTOS.Abstractions.Data.Messages;
 using TCTOS.Client.Common;
+using TCTOS.Impls.Local;
 
 namespace TCTOS.Console.Commands.Container.Provision;
 
@@ -17,9 +18,13 @@ public sealed class ProvisionContainerCommand()
         
         var writer = new UnixSocketWriter(socketPath);
         
-        var task = writer.WriteAsync<Abstractions.Data.Container[]>(new ProvisionSocketMessage
+        var userInformationCollector = new LocalUserInformationCollector();
+        
+        var task = writer.WriteAsync(new ProvisionSocketMessage
         {
-            ContainerName = containerName
+            ContainerName = containerName,
+            Gid = userInformationCollector.GetGid(),
+            Uid = userInformationCollector.GetUid()
         });
 
         var response = plain
