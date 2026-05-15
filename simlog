@@ -67,7 +67,7 @@ def main():
             if(current_uid != args.uid):
                 print(f"Fixing {directoryPath}: {current_uid} --> {args.uid}")
                 chown(directoryPath, args.uid)
-        for filePath in (join(root, files) for file in files):
+        for filePath in (join(root, file) for file in files):
             current_uid = stat(filePath).st_uid
             if(current_uid != args.uid):
                 print(f"Fixing {filePath}: {current_uid} --> {args.uid}")
