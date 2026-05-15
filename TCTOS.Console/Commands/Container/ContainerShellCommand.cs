@@ -42,10 +42,9 @@ public sealed class ContainerShellCommand() : CommandBase("shell", "Start an int
 
         var processInfo = new ProcessStartInfo
         {
-            FileName = string.Join(" ", [
-                "incus", "exec", "--force-interactive", containerName, "--", "/sbin/simlog", "--uid", uid, "--gid", gid,
-                shell
-            ])
+            FileName = "incus",
+            Arguments = string.Join(" ", "exec", "--force-interactive", containerName, "--", "/sbin/simlog", "--uid",
+                uid, "--gid", gid, shell)
         };
 
         var process = Process.Start(processInfo);
